@@ -1,0 +1,86 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build & Release macOS App
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Show Swift & Xcode Version
+        run: |
+          swift --version
+          xcodebuild -version
+
+      - name: Build Application Bundle
+        run: |
+          chmod +x scripts/build_app.sh
+          ./scripts/build_app.sh
+
+      - name: Package Release Archive
+        id: package
+        run: |
+          VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" Resources/Info.plist 2>/dev/null || echo "1.0.0")
+          echo "VERSION=${VERSION}" >> "$GITHUB_OUTPUT"
+          
+          ditto -c -k --sequesterRsrc --keepParent Deck.app Deck-macOS.zip
+          ls -lh Deck-macOS.zip
+
+      - name: Upload Build Artifact to GitHub Actions
+        uses: actions/upload-artifact@v4
+        with:
+          name: Deck-macOS-${{ steps.package.outputs.VERSION }}
+          path: Deck-macOS.zip
+          if-no-files-found: error
+
+      - name: Publish or Update GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.package.outputs.VERSION }}
+        run: |
+          TAG="v${VERSION}"
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            TAG="${GITHUB_REF#refs/tags/}"
+          fi
+          
+          echo "Target Release Tag: ${TAG}"
+          
+          RELEASE_NOTES="### Deck ${TAG} 🚀
+          
+          Release build for **Deck** macOS native efficiency platform.
+          
+          #### 📥 Installation
+          1. Download \`Deck-macOS.zip\` below.
+          2. Unzip to obtain \`Deck.app\`.
+          3. Drag \`Deck.app\` into your \`/Applications\` folder.
+          4. If macOS displays a Gatekeeper prompt on first launch, right-click (or Control-click) \`Deck.app\` and choose **Open**, or run:
+             \`\`\`bash
+             xattr -cr /Applications/Deck.app
+             \`\`\`
+          "
+          
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            echo "Release ${TAG} already exists, updating asset..."
+            gh release upload "${TAG}" Deck-macOS.zip --clobber
+          else
+            echo "Creating new GitHub Release ${TAG}..."
+            gh release create "${TAG}" Deck-macOS.zip \
+              --title "Deck ${TAG}" \
+              --notes "${RELEASE_NOTES}" \
+              --target "${GITHUB_SHA}"
+          fi

@@ -1,0 +1,26 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Xcode & SwiftPM
+.build/
+.swiftpm/
+*.xcodeproj
+*.xcworkspace
+DerivedData/
+
+# App Bundles & Binaries
+*.app/
+*.dSYM/
+*.ipa
+*.pkg
+
+# Local Config & Secrets
+.codesign_identity
+*.local
+.env
+.env.*
