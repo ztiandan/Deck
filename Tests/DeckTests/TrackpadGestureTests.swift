@@ -1,7 +1,8 @@
 import XCTest
+import CoreGraphics
 @testable import Deck
 
-final class TrackpadGestureTests: XCTestCase {
+final class TrackpadGestureTests: IsolatedDeckTestCase {
 
     // MARK: - 1. Multitouch Support C Bridge Memory Layout Tests
     func testMultitouchMemoryLayout() {
@@ -85,7 +86,7 @@ final class TrackpadGestureTests: XCTestCase {
 
     // MARK: - 3. GestureStore State & Management
     func testGestureStoreDefaultGestures() {
-        let defaults = GestureStore.shared.defaultGestures()
+        let defaults = makeGestureStore().defaultGestures()
         XCTAssertEqual(defaults.count, 5)
 
         XCTAssertEqual(defaults[0].gestureType, .tipTapRight2F)
@@ -109,7 +110,7 @@ final class TrackpadGestureTests: XCTestCase {
     }
 
     func testGestureStoreAddToggleRemove() {
-        let store = GestureStore.shared
+        let store = makeGestureStore()
         let originalCount = store.gestures.count
 
         let testGesture = TouchpadGesture(
@@ -143,31 +144,68 @@ final class TrackpadGestureTests: XCTestCase {
     }
 
     func testHapticFeedbackPreference() {
-        let store = GestureStore.shared
+        let store = makeGestureStore()
         let original = store.isHapticFeedbackEnabled
 
         store.isHapticFeedbackEnabled = false
-        XCTAssertFalse(UserDefaults.standard.bool(forKey: "deck_gesture_haptic_feedback"))
+        XCTAssertFalse(testPreferences.bool(forKey: "deck_gesture_haptic_feedback"))
 
         store.isHapticFeedbackEnabled = true
-        XCTAssertTrue(UserDefaults.standard.bool(forKey: "deck_gesture_haptic_feedback"))
+        XCTAssertTrue(testPreferences.bool(forKey: "deck_gesture_haptic_feedback"))
 
         store.isHapticFeedbackEnabled = original
     }
 
     // MARK: - 4. ActionExecutor Key & Modifier Resolution
     func testActionExecutorKeyResolution() {
-        // Test fallback resolution when keyCode is 0
-        let g1 = TouchpadGesture(gestureType: .tipTapRight2F, shortcutDisplay: "⌘ W")
-        XCTAssertEqual(g1.keyCode, 0)
+        var events: [CGEvent] = []
+        let executor = ActionExecutor(postEvent: { events.append($0) })
+        let edited = TouchpadGesture(gestureType: .tipTapRight2F, shortcutDisplay: "⌘ R", keyCode: 13, modifiers: ["cmd"])
+        executor.execute(gesture: edited)
+        XCTAssertEqual(events.map(\.type), [.keyDown, .keyUp])
+        XCTAssertEqual(events.map { $0.getIntegerValueField(.keyboardEventKeycode) }, [15, 15])
+        XCTAssertTrue(events.allSatisfy { $0.flags.contains(.maskCommand) })
+        events.removeAll()
+        executor.execute(gesture: TouchpadGesture(gestureType: .fourFingerTap, actionType: .cmdClick, shortcutDisplay: "CMD(⌘)+Click"))
+        XCTAssertEqual(events.map(\.type), [.flagsChanged, .leftMouseDown, .leftMouseUp, .flagsChanged])
+        XCTAssertTrue(events[1].flags.contains(.maskCommand))
+        XCTAssertTrue(events[2].flags.contains(.maskCommand))
+        XCTAssertTrue(events[3].flags.isEmpty)
+        events.removeAll()
+        executor.execute(gesture: TouchpadGesture(gestureType: .fourFingerTap, actionType: .middleClick, shortcutDisplay: "Middle Click"))
+        XCTAssertEqual(events.map(\.type), [.otherMouseDown, .otherMouseUp])
+        XCTAssertTrue(events.allSatisfy { $0.getIntegerValueField(.mouseEventButtonNumber) == 2 })
+        events.removeAll()
+        executor.execute(gesture: TouchpadGesture(gestureType: .tipTapRight2F, shortcutDisplay: "invalid"))
+        executor.execute(gesture: TouchpadGesture(gestureType: .tipTapRight2F, shortcutDisplay: "⌘ W", isEnabled: false))
+        XCTAssertTrue(events.isEmpty)
+    }
 
-        // Execute should not crash
-        XCTAssertNoThrow(ActionExecutor.shared.execute(gesture: g1))
+    func testDefaultActionsEmitTheirConfiguredShortcuts() {
+        let defaults = makeGestureStore().defaultGestures()
+        for (gesture, expectedCode) in zip(defaults.prefix(4), [13, 15, 123, 124]) {
+            var events: [CGEvent] = []
+            let executor = ActionExecutor(postEvent: { events.append($0) })
+            executor.execute(gesture: gesture)
+            XCTAssertEqual(events.map(\.type), [.keyDown, .keyUp])
+            XCTAssertEqual(events.map { $0.getIntegerValueField(.keyboardEventKeycode) }, [Int64(expectedCode), Int64(expectedCode)])
+            let expectedFlag: CGEventFlags = expectedCode < 100 ? .maskCommand : .maskControl
+            XCTAssertTrue(events.allSatisfy { $0.flags == expectedFlag })
+        }
+    }
 
-        let g2 = TouchpadGesture(gestureType: .fourFingerTap, actionType: .cmdClick, shortcutDisplay: "CMD(⌘)+Click")
-        XCTAssertNoThrow(ActionExecutor.shared.execute(gesture: g2))
-
-        let g3 = TouchpadGesture(gestureType: .fourFingerTap, actionType: .middleClick, shortcutDisplay: "Middle Click")
-        XCTAssertNoThrow(ActionExecutor.shared.execute(gesture: g3))
+    func testShortcutParsingAndRoundTrip() {
+        for (label, code, modifiers) in [("⌘ W", 13, ["cmd"]), ("cmd+r", 15, ["cmd"]),
+                                          ("⌘ T", 17, ["cmd"]), ("^ ←", 123, ["ctrl"]),
+                                          ("ctrl+right", 124, ["ctrl"]), ("⌘ ⇧ [", 33, ["cmd", "shift"]),
+                                          ("⌘⇧]", 30, ["cmd", "shift"]), ("⌘ A", 0, ["cmd"])] {
+            let parsed = ShortcutDefinition.parse(label)
+            XCTAssertEqual(parsed?.keyCode, UInt16(code), label)
+            XCTAssertEqual(parsed?.modifiers, modifiers, label)
+            XCTAssertEqual(parsed.flatMap { ShortcutDefinition.parse($0.display) }?.keyCode, UInt16(code))
+        }
+        for invalid in ["", "cmd", "CMD(⌘)+Click", "unknown", "⌘ W R"] {
+            XCTAssertNil(ShortcutDefinition.parse(invalid))
+        }
     }
 }

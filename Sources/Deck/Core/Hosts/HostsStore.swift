@@ -6,9 +6,42 @@ public class HostsStore: ObservableObject {
 
     @Published public var config: HostsConfig = .default
 
+    @Published public private(set) var drafts: [UUID: String] = [:]
+    private var draftSave: DispatchWorkItem?
     private let fileURL: URL
+    private var draftsURL: URL { fileURL.appendingPathExtension("drafts") }
 
-    private init() {
+    public func editingContent(for profile: HostsProfile) -> String { drafts[profile.id] ?? profile.content }
+
+    public func updateDraft(id: UUID, content: String) {
+        guard let saved = config.profiles.first(where: { $0.id == id }) else { return }
+        if content == saved.content { drafts.removeValue(forKey: id) }
+        else { drafts[id] = content }
+        draftSave?.cancel()
+        let work = DispatchWorkItem { [weak self] in self?.saveDrafts() }
+        draftSave = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4, execute: work)
+    }
+
+    public func saveDrafts() {
+        draftSave?.cancel()
+        do { try ConfigurationFile.write(drafts, to: draftsURL) }
+        catch { ConfigurationIssue.shared.report(error, url: draftsURL) }
+    }
+
+    private func loadDrafts() {
+        guard FileManager.default.fileExists(atPath: draftsURL.path) else { return }
+        do { drafts = try JSONDecoder().decode([UUID: String].self, from: Data(contentsOf: draftsURL)) }
+        catch { ConfigurationIssue.shared.report(error, url: draftsURL) }
+    }
+
+    init(fileURL: URL? = nil) {
+        if let fileURL {
+            self.fileURL = fileURL
+            load()
+            loadDrafts()
+            return
+        }
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
         let appDir = appSupport.appendingPathComponent("Deck", isDirectory: true)
         try? FileManager.default.createDirectory(at: appDir, withIntermediateDirectories: true)
@@ -24,6 +57,7 @@ public class HostsStore: ObservableObject {
 
         self.fileURL = targetURL
         load()
+        loadDrafts()
     }
 
     public func load() {
@@ -34,7 +68,8 @@ public class HostsStore: ObservableObject {
                 self.config = decoded
                 return
             } catch {
-                print("Failed to load hosts config: \(error), using default")
+                ConfigurationIssue.shared.report(error, url: fileURL)
+                return
             }
         }
 
@@ -49,38 +84,53 @@ public class HostsStore: ObservableObject {
         save()
     }
 
-    public func save() {
+    @discardableResult
+    public func save() -> Bool {
         do {
-            let data = try JSONEncoder().encode(config)
-            try data.write(to: fileURL, options: .atomic)
+            try ConfigurationFile.write(config, to: fileURL)
+            return true
         } catch {
-            print("Failed to save hosts config: \(error)")
+            ConfigurationIssue.shared.report(error, url: fileURL)
+            return false
         }
     }
 
-    /// 切换某个方案的开关状态
-    public func toggleProfile(id: UUID, applyToSystem: Bool = true) {
-        guard let index = config.profiles.firstIndex(where: { $0.id == id }) else { return }
-        let currentTarget = config.profiles[index]
-        let newEnabled = !currentTarget.isEnabled
+    /// Commit the selection only after the system file has been verified.
+    @discardableResult
+    public func toggleProfile(id: UUID, applyToSystem: Bool = true, manager: HostsManager = .shared) -> Bool {
+        guard let profile = config.profiles.first(where: { $0.id == id }) else { return false }
+        var proposed = config
+        Self.setEnabled(!profile.isEnabled, id: id, in: &proposed)
+        if applyToSystem && !manager.apply(config: proposed) { return false }
+        config = proposed
+        save()
+        return true
+    }
 
-        if newEnabled, let groupId = currentTarget.groupId {
-            let group = config.groups.first(where: { $0.id == groupId })
-            if group?.isExclusive == true || config.exclusiveInGroup {
-                // 组内互斥：同组其他设为 false
-                for i in 0..<config.profiles.count {
-                    if config.profiles[i].groupId == groupId && config.profiles[i].id != id {
-                        config.profiles[i].isEnabled = false
-                    }
-                }
+    @discardableResult
+    public func applyProfile(_ profile: HostsProfile, manager: HostsManager = .shared) -> Bool {
+        guard let index = config.profiles.firstIndex(where: { $0.id == profile.id }) else { return false }
+        var proposed = config
+        proposed.profiles[index] = profile
+        // Apply means enable this profile, including group exclusivity.
+        Self.setEnabled(true, id: profile.id, in: &proposed)
+        guard manager.apply(config: proposed) else { return false }
+        config = proposed
+        guard save() else { return false }
+        drafts.removeValue(forKey: profile.id)
+        saveDrafts()
+        return true
+    }
+
+    private static func setEnabled(_ enabled: Bool, id: UUID, in config: inout HostsConfig) {
+        guard let index = config.profiles.firstIndex(where: { $0.id == id }) else { return }
+        if enabled, config.exclusiveInGroup, let groupID = config.profiles[index].groupId,
+           config.groups.first(where: { $0.id == groupID })?.isExclusive == true {
+            for i in config.profiles.indices where config.profiles[i].groupId == groupID {
+                config.profiles[i].isEnabled = false
             }
         }
-
-        config.profiles[index].isEnabled = newEnabled
-        save()
-        if applyToSystem {
-            _ = HostsManager.shared.applyHostsToSystem()
-        }
+        config.profiles[index].isEnabled = enabled
     }
 
     /// 添加新方案
@@ -97,13 +147,18 @@ public class HostsStore: ObservableObject {
         return profile
     }
 
-    /// 删除方案
-    public func deleteProfile(id: UUID, applyToSystem: Bool = true) {
-        config.profiles.removeAll { $0.id == id }
-        save()
-        if applyToSystem {
-            _ = HostsManager.shared.applyHostsToSystem()
-        }
+    /// Do not remove a profile from the UI if updating hosts failed.
+    @discardableResult
+    public func deleteProfile(id: UUID, applyToSystem: Bool = true, manager: HostsManager = .shared) -> Bool {
+        guard let profile = config.profiles.first(where: { $0.id == id }) else { return false }
+        var proposed = config
+        proposed.profiles.removeAll { $0.id == id }
+        if applyToSystem && profile.isEnabled && !manager.apply(config: proposed) { return false }
+        config = proposed
+        guard save() else { return false }
+        drafts.removeValue(forKey: id)
+        saveDrafts()
+        return true
     }
 
     /// 更新方案
@@ -123,6 +178,12 @@ public class HostsStore: ObservableObject {
     }
 
     /// 删除分组
+    public func toggleGroupExpanded(id: UUID) {
+        guard let index = config.groups.firstIndex(where: { $0.id == id }) else { return }
+        config.groups[index].isExpanded.toggle()
+        save()
+    }
+
     public func deleteGroup(id: UUID) {
         config.groups.removeAll { $0.id == id }
         // 将属于该分组的 profiles 移到顶层

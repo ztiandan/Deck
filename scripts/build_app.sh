@@ -46,6 +46,7 @@ else
 fi
 
 echo "==> 5. Verifying signature & designated requirement:"
+codesign --verify --deep --strict "$APP_BUNDLE"
 codesign -d -r- "$APP_BUNDLE"
 
 echo "==> Successfully created $APP_BUNDLE with AppIcon and Developer Signature!"

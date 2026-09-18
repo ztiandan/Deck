@@ -83,6 +83,6 @@ public class MultitouchBridge {
     }
 
     public var isAvailable: Bool {
-        return MTDeviceCreateDefault != nil && MTRegisterContactFrameCallback != nil && MTDeviceStart != nil
+        return MTDeviceCreateDefault != nil && MTRegisterContactFrameCallback != nil && MTDeviceStart != nil && MTDeviceStop != nil
     }
 }

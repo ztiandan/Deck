@@ -45,6 +45,7 @@ public class MenuBarManager: NSObject, NSMenuDelegate {
             item.target = self
             item.representedObject = profile.id
             item.state = profile.isEnabled ? .on : .off
+            item.toolTip = hostsStore.config.previewOnHover ? profile.content : nil
             menu.addItem(item)
         }
 
@@ -65,6 +66,7 @@ public class MenuBarManager: NSObject, NSMenuDelegate {
                 item.target = self
                 item.representedObject = profile.id
                 item.state = profile.isEnabled ? .on : .off
+                item.toolTip = hostsStore.config.previewOnHover ? profile.content : nil
                 subMenu.addItem(item)
             }
             groupItem.submenu = subMenu
@@ -126,7 +128,13 @@ public class MenuBarManager: NSObject, NSMenuDelegate {
 
     @objc private func toggleProfileClicked(_ sender: NSMenuItem) {
         guard let id = sender.representedObject as? UUID else { return }
-        HostsStore.shared.toggleProfile(id: id)
+        if !HostsStore.shared.toggleProfile(id: id) {
+            let alert = NSAlert()
+            alert.messageText = loc(.hostsApplyFailed)
+            alert.informativeText = HostsManager.shared.lastError ?? ""
+            alert.alertStyle = .warning
+            alert.runModal()
+        }
         rebuildMenu()
     }
 

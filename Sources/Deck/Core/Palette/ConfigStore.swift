@@ -71,7 +71,12 @@ public class ConfigStore: ObservableObject {
 
     private let fileURL: URL
 
-    private init() {
+    init(fileURL: URL? = nil) {
+        if let fileURL {
+            self.fileURL = fileURL
+            load()
+            return
+        }
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
         let appDir = appSupport.appendingPathComponent("Deck", isDirectory: true)
         try? FileManager.default.createDirectory(at: appDir, withIntermediateDirectories: true)
@@ -96,23 +101,11 @@ public class ConfigStore: ObservableObject {
         if FileManager.default.fileExists(atPath: fileURL.path) {
             do {
                 let data = try Data(contentsOf: fileURL)
-                var decoded = try JSONDecoder().decode(AppConfig.self, from: data)
-                var modified = false
-                for i in 0..<decoded.items.count {
-                    if decoded.items[i].bundleIdentifier?.localizedCaseInsensitiveContains("stairways") == true ||
-                       decoded.items[i].bundleIdentifier?.localizedCaseInsensitiveContains("maestro") == true {
-                        decoded.items[i].displayName = "Activate Keynote"
-                        decoded.items[i].bundleIdentifier = "com.apple.iWork.Keynote"
-                        modified = true
-                    }
-                }
-                self.config = decoded
-                if modified {
-                    save()
-                }
+                self.config = try JSONDecoder().decode(AppConfig.self, from: data)
                 return
             } catch {
-                print("Failed to load config: \(error), using default")
+                ConfigurationIssue.shared.report(error, url: fileURL)
+                return
             }
         }
         // 若没有或加载失败，使用默认并保存
@@ -122,10 +115,9 @@ public class ConfigStore: ObservableObject {
 
     public func save() {
         do {
-            let data = try JSONEncoder().encode(config)
-            try data.write(to: fileURL, options: .atomic)
+            try ConfigurationFile.write(config, to: fileURL)
         } catch {
-            print("Failed to save config: \(error)")
+            ConfigurationIssue.shared.report(error, url: fileURL)
         }
     }
 

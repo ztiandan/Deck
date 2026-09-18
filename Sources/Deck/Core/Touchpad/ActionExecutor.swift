@@ -5,14 +5,18 @@ import CoreGraphics
 public class ActionExecutor {
     public static let shared = ActionExecutor()
 
-    private init() {}
+    private let postEvent: (CGEvent) -> Void
+
+    init(postEvent: @escaping (CGEvent) -> Void = { $0.post(tap: .cghidEventTap) }) {
+        self.postEvent = postEvent
+    }
 
     public func execute(gesture: TouchpadGesture) {
         guard gesture.isEnabled else { return }
 
         switch gesture.actionType {
         case .shortcut:
-            let (code, mods) = resolveKeyAndModifiers(gesture: gesture)
+            guard let (code, mods) = resolveKeyAndModifiers(gesture: gesture) else { return }
             simulateShortcut(keyCode: code, modifiers: mods)
         case .cmdClick:
             simulateCmdClick()
@@ -21,27 +25,10 @@ public class ActionExecutor {
         }
     }
 
-    private func resolveKeyAndModifiers(gesture: TouchpadGesture) -> (UInt16, [String]) {
-        if gesture.keyCode != 0 {
-            return (gesture.keyCode, gesture.modifiers)
-        }
-        let clean = gesture.shortcutDisplay.trimmingCharacters(in: .whitespaces)
-        switch clean {
-        case "⌘ W", "⌘W", "cmd+w", "cmd w":
-            return (13, ["cmd"])
-        case "⌘ R", "⌘R", "cmd+r", "cmd r":
-            return (15, ["cmd"])
-        case "^ ←", "^←", "ctrl+left":
-            return (123, ["ctrl"])
-        case "^ →", "^→", "ctrl+right":
-            return (124, ["ctrl"])
-        case "^ ⇧ →", "^⇧→":
-            return (124, ["ctrl", "shift"])
-        case "^ ⇧ ←", "^⇧←":
-            return (123, ["ctrl", "shift"])
-        default:
-            return (gesture.keyCode, gesture.modifiers)
-        }
+    func resolveKeyAndModifiers(gesture: TouchpadGesture) -> (UInt16, [String])? {
+        // The editable label is authoritative; stale saved key codes must not execute
+        // a different shortcut (or accidentally type A when parsing fails).
+        ShortcutDefinition.parse(gesture.shortcutDisplay).map { ($0.keyCode, $0.modifiers) }
     }
 
     /// 模拟键盘快捷键
@@ -72,9 +59,9 @@ public class ActionExecutor {
         keyDown.flags = flags
         keyUp.flags = flags
 
-        keyDown.post(tap: .cghidEventTap)
+        postEvent(keyDown)
         usleep(20000) // 20ms
-        keyUp.post(tap: .cghidEventTap)
+        postEvent(keyUp)
     }
 
     /// 模拟 CMD + 鼠标左键点击（常用于后台新标签打开）
@@ -105,13 +92,13 @@ public class ActionExecutor {
         down.setIntegerValueField(.mouseEventClickState, value: 1)
         up.setIntegerValueField(.mouseEventClickState, value: 1)
 
-        cmdDown?.post(tap: .cghidEventTap)
+        if let event = cmdDown { postEvent(event) }
         usleep(5000)
-        down.post(tap: .cghidEventTap)
+        postEvent(down)
         usleep(25000)
-        up.post(tap: .cghidEventTap)
+        postEvent(up)
         usleep(5000)
-        cmdUp?.post(tap: .cghidEventTap)
+        if let event = cmdUp { postEvent(event) }
     }
 
     /// 模拟鼠标中键点击
@@ -127,13 +114,15 @@ public class ActionExecutor {
             return
         }
 
+        down.flags = []
+        up.flags = []
         down.setIntegerValueField(.mouseEventButtonNumber, value: 2)
         up.setIntegerValueField(.mouseEventButtonNumber, value: 2)
         down.setIntegerValueField(.mouseEventClickState, value: 1)
         up.setIntegerValueField(.mouseEventClickState, value: 1)
 
-        down.post(tap: .cghidEventTap)
+        postEvent(down)
         usleep(25000)
-        up.post(tap: .cghidEventTap)
+        postEvent(up)
     }
 }

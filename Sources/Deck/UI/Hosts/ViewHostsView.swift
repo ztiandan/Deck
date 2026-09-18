@@ -3,6 +3,7 @@ import AppKit
 
 public struct ViewHostsView: View {
     @ObservedObject var hostsStore = HostsStore.shared
+    @ObservedObject var hostsManager = HostsManager.shared
     @ObservedObject var l10n = LocalizationManager.shared
     @State private var activeContent: String = ""
     @State private var copied: Bool = false
@@ -61,16 +62,16 @@ public struct ViewHostsView: View {
         .onAppear {
             refreshContent()
         }
-        .onChange(of: hostsStore.config.profiles) { _ in
-            refreshContent()
-        }
+        .onChange(of: hostsStore.config.profiles) { _ in refreshContent() }
+        .onChange(of: hostsManager.systemContent) { _ in refreshContent() }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in refreshContent() }
     }
 
     private func refreshContent() {
         if let actual = try? String(contentsOfFile: "/etc/hosts", encoding: .utf8) {
             activeContent = actual
         } else {
-            activeContent = HostsManager.shared.generateMergedContent()
+            activeContent = loc(.hostsReadFailed)
         }
     }
 }

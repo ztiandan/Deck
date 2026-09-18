@@ -4,50 +4,35 @@ import CoreGraphics
 
 public class HotKeyManager: ObservableObject {
     public static let shared = HotKeyManager()
-
-    @Published public var isAccessibilityGranted: Bool = false
-    @Published public var isListening: Bool = false
-
+    @Published public private(set) var isAccessibilityGranted = false
+    @Published public private(set) var isListening = false
+    public var onTrigger: (() -> Void)?
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
-
-    public var onTrigger: (() -> Void)?
-
     private var pollingTimer: Timer?
 
-    private init() {
-        if !checkAccessibility(prompt: false) {
-            startPollingAccessibility()
-        }
-    }
+    private init() {}
 
-    /// 检查辅助功能权限
     @discardableResult
     public func checkAccessibility(prompt: Bool = false) -> Bool {
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: prompt] as CFDictionary
         let trusted = AXIsProcessTrustedWithOptions(options)
-        DispatchQueue.main.async {
-            self.isAccessibilityGranted = trusted
-            if trusted {
-                self.stopPollingAccessibility()
-                if !self.isListening {
-                    self.startListening()
-                }
-            }
-        }
+        isAccessibilityGranted = trusted
+        if !trusted { stopListening() }
         return trusted
     }
 
-    /// 开始定期轮询辅助功能权限状态（授权后立即自动生效并停止轮询）
+    /// A single timer handles both permission grants/revocations and failed tap creation.
     public func startPollingAccessibility() {
-        pollingTimer?.invalidate()
-        pollingTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
-            guard let self = self else { return }
-            if self.checkAccessibility(prompt: false) {
-                timer.invalidate()
-                self.pollingTimer = nil
-            }
+        guard pollingTimer == nil else { return }
+        refreshListening()
+        pollingTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
+            self?.refreshListening()
         }
+    }
+
+    private func refreshListening() {
+        if checkAccessibility() && !isListening { startListening() }
     }
 
     public func stopPollingAccessibility() {
@@ -55,7 +40,6 @@ public class HotKeyManager: ObservableObject {
         pollingTimer = nil
     }
 
-    /// 打开系统设置辅助功能设置页
     public func openAccessibilityPreferences() {
         checkAccessibility(prompt: true)
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
@@ -64,80 +48,51 @@ public class HotKeyManager: ObservableObject {
         startPollingAccessibility()
     }
 
-    /// 开始监听全局热键
-    public func startListening() {
-        if isListening { return }
-
-        guard checkAccessibility(prompt: true) else {
-            print("Accessibility permission is required for global hotkey")
-            return
-        }
-
-        let eventMask = (1 << CGEventType.keyDown.rawValue)
-
-        let observer = UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
-
-        guard let tap = CGEvent.tapCreate(
-            tap: .cgSessionEventTap,
-            place: .headInsertEventTap,
-            options: .defaultTap,
-            eventsOfInterest: CGEventMask(eventMask),
-            callback: { (proxy, type, event, refcon) -> Unmanaged<CGEvent>? in
-                guard let refcon = refcon else { return Unmanaged.passRetained(event) }
-                let manager = Unmanaged<HotKeyManager>.fromOpaque(refcon).takeUnretainedValue()
-
-                if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
-                    if let eventTap = manager.eventTap {
-                        CGEvent.tapEnable(tap: eventTap, enable: true)
-                    }
-                    return Unmanaged.passRetained(event)
-                }
-
-                if type == .keyDown {
-                    let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
-                    let targetKeyCode = ConfigStore.shared.config.triggerKeyCode
-
-                    if keyCode == targetKeyCode {
-                        DispatchQueue.main.async {
-                            manager.onTrigger?()
-                        }
-                        // 吞掉此按键，防止蜂鸣或穿透
-                        return nil
-                    }
-                }
-
-                return Unmanaged.passRetained(event)
-            },
-            userInfo: observer
-        ) else {
-            print("Failed to create event tap")
-            return
-        }
-
-        self.eventTap = tap
-        let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
-        self.runLoopSource = source
-        CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
-        CGEvent.tapEnable(tap: tap, enable: true)
-        self.isListening = true
-        print("Successfully started listening for trigger key (KeyCode: \(ConfigStore.shared.config.triggerKeyCode))")
+    static func isTrigger(_ event: CGEvent, keyCode: Int) -> Bool {
+        event.getIntegerValueField(.keyboardEventKeycode) == keyCode &&
+        event.flags.intersection([.maskCommand, .maskControl, .maskAlternate, .maskShift]).isEmpty
     }
 
-    /// 停止监听
+    public func startListening() {
+        guard !isListening, checkAccessibility() else { return }
+        let observer = Unmanaged.passUnretained(self).toOpaque()
+        guard let tap = CGEvent.tapCreate(
+            tap: .cgSessionEventTap, place: .headInsertEventTap, options: .defaultTap,
+            eventsOfInterest: CGEventMask(1 << CGEventType.keyDown.rawValue),
+            callback: { _, type, event, refcon in
+                guard let refcon else { return Unmanaged.passUnretained(event) }
+                let manager = Unmanaged<HotKeyManager>.fromOpaque(refcon).takeUnretainedValue()
+                if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+                    if let tap = manager.eventTap { CGEvent.tapEnable(tap: tap, enable: true) }
+                    return Unmanaged.passUnretained(event)
+                }
+                if type == .keyDown && HotKeyManager.isTrigger(event, keyCode: ConfigStore.shared.config.triggerKeyCode) {
+                    if event.getIntegerValueField(.keyboardEventAutorepeat) == 0 {
+                        DispatchQueue.main.async { manager.onTrigger?() }
+                    }
+                    return nil
+                }
+                return Unmanaged.passUnretained(event)
+            }, userInfo: observer
+        ) else { return }
+        eventTap = tap
+        runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
+        CFRunLoopAddSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
+        CGEvent.tapEnable(tap: tap, enable: true)
+        isListening = true
+    }
+
     public func stopListening() {
-        guard isListening else { return }
         if let tap = eventTap {
             CGEvent.tapEnable(tap: tap, enable: false)
-            if let source = runLoopSource {
-                CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes)
-                self.runLoopSource = nil
-            }
-            self.eventTap = nil
+            CFMachPortInvalidate(tap)
         }
-        self.isListening = false
+        if let source = runLoopSource { CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes) }
+        runLoopSource = nil
+        eventTap = nil
+        isListening = false
     }
 
-    /// 重启监听（例如修改了热键之后）
     public func restartListening() {
         stopListening()
         startListening()

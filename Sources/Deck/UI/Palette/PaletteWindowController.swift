@@ -13,6 +13,7 @@ public class PaletteWindowController: NSObject {
     private var panel: CustomPalettePanel?
     private var localKeyMonitor: Any?
     private var globalMouseMonitor: Any?
+    private var localMouseMonitor: Any?
 
     public var isVisible: Bool {
         panel?.isVisible ?? false
@@ -121,13 +122,10 @@ public class PaletteWindowController: NSObject {
 
         removeMonitors()
 
-        NSAnimationContext.runAnimationGroup({ context in
-            context.duration = 0.1
-            panel.animator().alphaValue = 0.0
-        }, completionHandler: {
-            panel.orderOut(nil)
-            panel.alphaValue = 1.0
-        })
+        // Hide synchronously: an old animation completion must not close a newly
+        // reopened palette or leave a transparent window intercepting input.
+        panel.orderOut(nil)
+        panel.alphaValue = 1.0
     }
 
     private func installMonitors() {
@@ -143,24 +141,25 @@ public class PaletteWindowController: NSObject {
                 return nil
             }
 
+            if event.isARepeat { return nil }
+            if event.modifierFlags.contains(.command), event.charactersIgnoringModifiers?.lowercased() == "w" {
+                self.hidePalette()
+                return nil
+            }
             let items = ConfigStore.shared.config.items
 
             // 1. 优先匹配配置项的按键
-            if let matched = items.first(where: { $0.matches(event: event) }) {
+            if let matched = PaletteItem.action(for: event, items: items) {
                 self.hidePalette()
                 AppSwitcher.shared.execute(item: matched)
                 return nil
             }
 
-            // 2. 若按下空格键 (kVK_Space == 49)，默认支持快速切换至最近应用
-            if event.keyCode == 49 {
-                if let lastAppItem = items.first(where: { $0.actionType == .activateLastApp }) {
-                    self.hidePalette()
-                    AppSwitcher.shared.execute(item: lastAppItem)
-                    return nil
-                }
-            }
+            return event
+        }
 
+        localMouseMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
+            if let self, event.window !== self.panel { self.hidePalette() }
             return event
         }
 
@@ -180,6 +179,10 @@ public class PaletteWindowController: NSObject {
         if let monitor = localKeyMonitor {
             NSEvent.removeMonitor(monitor)
             localKeyMonitor = nil
+        }
+        if let monitor = localMouseMonitor {
+            NSEvent.removeMonitor(monitor)
+            localMouseMonitor = nil
         }
         if let monitor = globalMouseMonitor {
             NSEvent.removeMonitor(monitor)

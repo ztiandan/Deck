@@ -1,7 +1,7 @@
 import XCTest
 @testable import Deck
 
-final class LocalizationTests: XCTestCase {
+final class LocalizationTests: IsolatedDeckTestCase {
 
     func testLocalizationCoverage() {
         let manager = LocalizationManager.shared

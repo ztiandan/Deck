@@ -77,6 +77,7 @@ public struct TrackpadGesturesView: View {
 
                     Button(loc(.gestureReset)) {
                         gestureStore.resetToDefault()
+                        selectedGestureId = gestureStore.gestures.first?.id
                     }
                     .controlSize(.small)
                 }
@@ -87,9 +88,12 @@ public struct TrackpadGesturesView: View {
             .frame(minWidth: 240, idealWidth: 260, maxWidth: 300)
 
             // 右侧：动作与配置区
-            if let index = gestureStore.gestures.firstIndex(where: { $0.id == selectedGestureId }) {
-                GestureDetailView(gesture: $gestureStore.gestures[index])
-                    .id(gestureStore.gestures[index].id)
+            if let selected = gestureStore.gestures.first(where: { $0.id == selectedGestureId }) {
+                GestureDetailView(gesture: Binding(
+                    get: { gestureStore.gestures.first(where: { $0.id == selected.id }) ?? selected },
+                    set: { gestureStore.updateGesture($0) }
+                ))
+                    .id(selected.id)
                     .frame(minWidth: 420)
             } else {
                 VStack(spacing: 12) {
@@ -244,6 +248,7 @@ struct GestureDetailView: View {
 
                 // 2. 手势操作动态示意图
                 TrackpadGestureIllustrationView(gestureType: gesture.gestureType)
+                    .id(gesture.gestureType)
 
                 // 3. 参数设置卡片
                 VStack(alignment: .leading, spacing: 14) {
@@ -291,6 +296,8 @@ struct GestureDetailView: View {
                                 gesture.shortcutDisplay = "CMD(⌘)+Click"
                             } else if newType == .middleClick {
                                 gesture.shortcutDisplay = "Middle Click"
+                            } else {
+                                gesture.shortcutDisplay = ShortcutDefinition(keyCode: gesture.keyCode, modifiers: gesture.modifiers).display
                             }
                         }
 
@@ -303,8 +310,19 @@ struct GestureDetailView: View {
                                 TextField("⌘ W", text: $gesture.shortcutDisplay)
                                     .textFieldStyle(.roundedBorder)
                                     .frame(width: 200)
+                                    .onChange(of: gesture.shortcutDisplay) { text in
+                                        if let shortcut = ShortcutDefinition.parse(text) {
+                                            gesture.keyCode = shortcut.keyCode
+                                            gesture.modifiers = shortcut.modifiers
+                                        }
+                                    }
+                                if ShortcutDefinition.parse(gesture.shortcutDisplay) == nil {
+                                    Text(loc(.gestureShortcutInvalid))
+                                        .font(.caption)
+                                        .foregroundColor(.orange)
+                                }
 
-                                HStack(spacing: 6) {
+                                LazyVGrid(columns: [GridItem(.adaptive(minimum: 56), spacing: 6)], alignment: .leading, spacing: 6) {
                                     Text(loc(.gesturePresetsLabel))
                                         .font(.system(size: 10))
                                         .foregroundColor(.secondary)
@@ -448,15 +466,17 @@ struct AddGestureSheet: View {
                     .keyboardShortcut(.cancelAction)
 
                 Button(loc(.gestureAddAction)) {
+                    guard let shortcut = ShortcutDefinition.parse(shortcutText) else { return }
                     let newG = TouchpadGesture(
                         gestureType: selectedType,
                         shortcutDisplay: shortcutText,
-                        keyCode: 13,
-                        modifiers: ["cmd"]
+                        keyCode: shortcut.keyCode,
+                        modifiers: shortcut.modifiers
                     )
                     onAdd(newG)
                 }
                 .keyboardShortcut(.defaultAction)
+                .disabled(ShortcutDefinition.parse(shortcutText) == nil)
             }
         }
         .padding(20)
@@ -468,6 +488,8 @@ struct AddGestureSheet: View {
 struct TrackpadGestureIllustrationView: View {
     let gestureType: GestureType
     @ObservedObject var l10n = LocalizationManager.shared
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var demoStart = Date()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -492,50 +514,15 @@ struct TrackpadGestureIllustrationView: View {
                 )
             }
 
-            HStack(spacing: 16) {
-                // 模拟触控板动画画布
-                TimelineView(.periodic(from: .now, by: 1.0 / 30.0)) { context in
-                    TrackpadCanvas(gestureType: gestureType, date: context.date)
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 16) {
+                    demoCanvas
+                    instructions.frame(minWidth: 200, maxWidth: .infinity, alignment: .leading)
                 }
-                .frame(width: 170, height: 100)
-
-                // 详细操作步骤与图例
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(stepDescription)
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.primary)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    HStack(spacing: 12) {
-                        if showsRestingFingerLegend {
-                            HStack(spacing: 5) {
-                                Circle()
-                                    .fill(Color.blue.gradient)
-                                    .frame(width: 9, height: 9)
-                                Text(loc(.gestureDemoHoldFinger))
-                                    .font(.system(size: 10))
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-
-                        HStack(spacing: 5) {
-                            Circle()
-                                .fill(Color.orange.gradient)
-                                .frame(width: 9, height: 9)
-                            Text(isSimultaneousTap ? loc(.gestureDemoSimultaneousTap) : loc(.gestureDemoTapFinger))
-                                .font(.system(size: 10))
-                                .foregroundColor(.secondary)
-                        }
-                    }
-
-                    Text(gestureType.description)
-                        .font(.system(size: 10.5))
-                        .foregroundColor(.secondary.opacity(0.85))
-                        .lineLimit(2)
+                VStack(alignment: .leading, spacing: 12) {
+                    demoCanvas.frame(maxWidth: .infinity)
+                    instructions
                 }
-
-                Spacer()
             }
             .padding(12)
             .background(
@@ -547,6 +534,53 @@ struct TrackpadGestureIllustrationView: View {
                     .stroke(Color.primary.opacity(0.06), lineWidth: 1)
             )
             .shadow(color: Color.black.opacity(0.03), radius: 4, x: 0, y: 1)
+        }
+    }
+
+    private var demoCanvas: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: reduceMotion)) { context in
+            TrackpadCanvas(gestureType: gestureType,
+                           elapsed: reduceMotion ? 1.2 : context.date.timeIntervalSince(demoStart))
+        }
+        .frame(width: 190, height: 148)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(stepDescription)
+    }
+
+    private var instructions: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(stepDescription)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(.primary)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack(spacing: 12) {
+                if showsRestingFingerLegend {
+                    HStack(spacing: 5) {
+                        Circle()
+                            .fill(Color.blue.gradient)
+                            .frame(width: 9, height: 9)
+                        Text(loc(.gestureDemoHoldFinger))
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                HStack(spacing: 5) {
+                    Circle()
+                        .fill(Color.orange.gradient)
+                        .frame(width: 9, height: 9)
+                    Text(isSimultaneousTap ? loc(.gestureDemoSimultaneousTap) : loc(.gestureDemoTapFinger))
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            Text(loc(isSimultaneousTap ? .gestureDemoMultiHint : .gestureDemoHint))
+                .font(.system(size: 10.5))
+                .foregroundColor(.secondary.opacity(0.85))
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -580,187 +614,117 @@ struct TrackpadGestureIllustrationView: View {
     }
 }
 
-/// 模拟触控板图形与手指运动
+/// The surface contact stays in place. Only the fingertip rises and falls,
+/// making a tap visibly different from dragging across the trackpad.
 struct TrackpadCanvas: View {
     let gestureType: GestureType
-    let date: Date
+    let elapsed: TimeInterval
+
+    private var phase: Double { max(0, elapsed).truncatingRemainder(dividingBy: 2.8) }
+    private var touching: Bool { phase >= 0.95 && phase < 1.20 }
+    private var lifted: Bool { phase >= 1.20 }
+    private var height: CGFloat {
+        if phase < 0.75 { return 15 }
+        if phase < 0.95 { return 15 * (0.95 - phase) / 0.20 }
+        if phase < 1.20 { return 0 }
+        if phase < 1.45 { return 15 * (phase - 1.20) / 0.25 }
+        return 15
+    }
+    private var hasAnchors: Bool {
+        gestureType != .threeFingerTap && gestureType != .fourFingerTap
+    }
 
     var body: some View {
-        let time = date.timeIntervalSinceReferenceDate
-        let cycle = (time.truncatingRemainder(dividingBy: 1.5)) / 1.5 // 0.0 ... 1.0
-
-        // 敲击动态阶段计算
-        let tapProgress: (offset: CGFloat, scale: CGFloat, rippleScale: CGFloat, rippleOpacity: Double) = {
-            if cycle < 0.20 {
-                // 悬停准备阶段
-                return (offset: -7, scale: 0.9, rippleScale: 0, rippleOpacity: 0)
-            } else if cycle < 0.38 {
-                // 触板敲击瞬间
-                let p = (cycle - 0.20) / 0.18
-                return (offset: -7 * (1.0 - p), scale: 0.9 + 0.25 * p, rippleScale: 1.0 + p * 1.5, rippleOpacity: 1.0 - p)
-            } else if cycle < 0.55 {
-                // 短暂停留接触
-                let p = (cycle - 0.38) / 0.17
-                return (offset: 0, scale: 1.15 - 0.05 * p, rippleScale: 2.5, rippleOpacity: 0)
-            } else if cycle < 0.75 {
-                // 抬起阶段
-                let p = (cycle - 0.55) / 0.20
-                return (offset: -7 * p, scale: 1.1 - 0.2 * p, rippleScale: 0, rippleOpacity: 0)
-            } else {
-                // 静止间隙等待下一次循环
-                return (offset: -7, scale: 0.9, rippleScale: 0, rippleOpacity: 0)
-            }
-        }()
-
-        ZStack {
-            // 触控板外框底板
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [Color.primary.opacity(0.08), Color.primary.opacity(0.03)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .stroke(Color.primary.opacity(0.12), lineWidth: 1)
-                )
-
-            // 顶部微质感边缘
-            VStack {
-                Rectangle()
-                    .fill(Color.primary.opacity(0.08))
-                    .frame(height: 1)
-                    .padding(.horizontal, 16)
-                    .padding(.top, 4)
-                Spacer()
-            }
-
-            // 手指接触点呈现
-            GeometryReader { geo in
-                let w = geo.size.width
-                let h = geo.size.height
-                let centerY = h * 0.48
-
-                ZStack {
-                    ForEach(fingerConfigs(for: gestureType, width: w), id: \.id) { config in
-                        if config.isResting {
-                            // 固定按压手指（平稳静止）
-                            VStack(spacing: 2) {
-                                ZStack {
-                                    Circle()
-                                        .fill(Color.blue.opacity(0.2))
-                                        .frame(width: 26, height: 26)
-
-                                    Circle()
-                                        .fill(
-                                            LinearGradient(
-                                                colors: [Color.blue, Color.blue.opacity(0.8)],
-                                                startPoint: .topLeading,
-                                                endPoint: .bottomTrailing
-                                            )
-                                        )
-                                        .frame(width: 19, height: 19)
-                                        .shadow(color: Color.blue.opacity(0.4), radius: 3, x: 0, y: 1)
-
-                                    Circle()
-                                        .fill(Color.white.opacity(0.7))
-                                        .frame(width: 5, height: 5)
-                                }
-
-                                Text("Hold")
-                                    .font(.system(size: 8, weight: .bold))
-                                    .foregroundColor(.blue.opacity(0.85))
-                            }
-                            .position(x: config.x, y: centerY)
-                        } else {
-                            // 动态轻敲手指（带悬停、触板冲击波、抬起动效）
-                            VStack(spacing: 2) {
-                                ZStack {
-                                    // 触板冲击扩散涟漪波
-                                    if tapProgress.rippleOpacity > 0.05 {
-                                        Circle()
-                                            .stroke(Color.orange.opacity(tapProgress.rippleOpacity), lineWidth: 1.8)
-                                            .frame(width: 19 * tapProgress.rippleScale, height: 19 * tapProgress.rippleScale)
-                                    }
-
-                                    Circle()
-                                        .fill(
-                                            LinearGradient(
-                                                colors: [Color.orange, Color.orange.opacity(0.85)],
-                                                startPoint: .topLeading,
-                                                endPoint: .bottomTrailing
-                                            )
-                                        )
-                                        .frame(width: 19, height: 19)
-                                        .scaleEffect(tapProgress.scale)
-                                        .offset(y: tapProgress.offset)
-                                        .shadow(color: Color.orange.opacity(tapProgress.offset == 0 ? 0.45 : 0.15), radius: tapProgress.offset == 0 ? 4 : 2, x: 0, y: tapProgress.offset == 0 ? 1 : 4)
-
-                                    Circle()
-                                        .fill(Color.white.opacity(0.8))
-                                        .frame(width: 5, height: 5)
-                                        .scaleEffect(tapProgress.scale)
-                                        .offset(y: tapProgress.offset)
-                                }
-
-                                Text("Tap")
-                                    .font(.system(size: 8, weight: .bold))
-                                    .foregroundColor(.orange)
-                            }
-                            .position(x: config.x, y: centerY)
-                        }
+        VStack(spacing: 8) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(LinearGradient(colors: [Color.primary.opacity(0.07), Color.primary.opacity(0.02)],
+                                         startPoint: .top, endPoint: .bottom))
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.primary.opacity(0.14), lineWidth: 1)
+                GeometryReader { geometry in
+                    ForEach(fingers, id: \.id) { finger in
+                        fingertip(resting: finger.resting)
+                            .position(x: geometry.size.width * finger.x, y: 57)
                     }
                 }
             }
+            .frame(height: 114)
+
+            HStack(spacing: 5) {
+                Image(systemName: lifted ? "checkmark.circle.fill" : (touching ? "hand.tap.fill" : "hand.point.up"))
+                Text(loc(lifted ? .gestureDemoLift : (touching ? .gestureDemoTouch :
+                            (hasAnchors ? .gestureDemoPrepare : .gestureDemoReady))))
+            }
+            .font(.system(size: 10, weight: .semibold))
+            .foregroundColor(lifted ? .green : .secondary)
+            .frame(maxWidth: .infinity)
         }
     }
 
-    private struct FingerConfig: Identifiable {
-        let id: Int
-        let x: CGFloat
-        let isResting: Bool
+    private func fingertip(resting: Bool) -> some View {
+        let color: Color = resting ? .blue : .orange
+        let down = resting || touching
+        return ZStack {
+            // Dashed outline marks the unchanged landing point while hovering.
+            Ellipse()
+                .stroke(color.opacity(down ? 0.65 : 0.30), style: StrokeStyle(lineWidth: 1, dash: down ? [] : [2, 2]))
+                .frame(width: 27, height: 12)
+                .offset(y: 13)
+            if down {
+                Ellipse().fill(color.opacity(0.20))
+                    .frame(width: 33, height: 16)
+                    .offset(y: 13)
+            }
+            if !resting && touching {
+                let progress = (phase - 0.95) / 0.25
+                Ellipse().stroke(color.opacity(0.8 * (1 - progress)), lineWidth: 1.5)
+                    .frame(width: 28 + 18 * progress, height: 14 + 10 * progress)
+                    .offset(y: 13)
+            }
+            // A fingertip silhouette, with a nail, replaces the ambiguous moving dot.
+            Capsule()
+                .fill(color.opacity(down ? 0.92 : 0.30).gradient)
+                .frame(width: down ? 24 : 22, height: down ? 35 : 38)
+                .overlay(alignment: .top) {
+                    RoundedRectangle(cornerRadius: 5)
+                        .fill(Color.white.opacity(0.65))
+                        .frame(width: 12, height: 14)
+                        .padding(.top, 4)
+                }
+                .offset(y: resting ? -3 : -3 - height)
+                .shadow(color: color.opacity(0.18), radius: down ? 1 : 3, y: down ? 1 : 6)
+            if !resting && !touching {
+                Image(systemName: lifted ? "arrow.up" : "arrow.down")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundColor(color)
+                    .offset(x: 17, y: -8)
+            }
+            Text(loc(resting ? .gestureDemoHoldShort : (lifted ? .gestureDemoLiftShort : .gestureDemoTapShort)))
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundColor(color)
+                .offset(y: 35)
+        }
     }
 
-    private func fingerConfigs(for type: GestureType, width: CGFloat) -> [FingerConfig] {
-        switch type {
-        case .tipTapRight2F:
-            return [
-                FingerConfig(id: 1, x: width * 0.36, isResting: true),
-                FingerConfig(id: 2, x: width * 0.64, isResting: false)
-            ]
-        case .tipTapLeft2F:
-            return [
-                FingerConfig(id: 1, x: width * 0.36, isResting: false),
-                FingerConfig(id: 2, x: width * 0.64, isResting: true)
-            ]
-        case .tipTapLeft3F:
-            return [
-                FingerConfig(id: 1, x: width * 0.28, isResting: false),
-                FingerConfig(id: 2, x: width * 0.50, isResting: true),
-                FingerConfig(id: 3, x: width * 0.72, isResting: true)
-            ]
-        case .tipTapRight3F:
-            return [
-                FingerConfig(id: 1, x: width * 0.28, isResting: true),
-                FingerConfig(id: 2, x: width * 0.50, isResting: true),
-                FingerConfig(id: 3, x: width * 0.72, isResting: false)
-            ]
-        case .fourFingerTap:
-            return [
-                FingerConfig(id: 1, x: width * 0.22, isResting: false),
-                FingerConfig(id: 2, x: width * 0.41, isResting: false),
-                FingerConfig(id: 3, x: width * 0.59, isResting: false),
-                FingerConfig(id: 4, x: width * 0.78, isResting: false)
-            ]
-        case .threeFingerTap:
-            return [
-                FingerConfig(id: 1, x: width * 0.28, isResting: false),
-                FingerConfig(id: 2, x: width * 0.50, isResting: false),
-                FingerConfig(id: 3, x: width * 0.72, isResting: false)
-            ]
+    private struct Finger: Identifiable {
+        let id: Int
+        let x: CGFloat
+        let resting: Bool
+    }
+
+    private var fingers: [Finger] {
+        let anchors: [Bool]
+        switch gestureType {
+        case .tipTapRight2F: anchors = [true, false]
+        case .tipTapLeft2F: anchors = [false, true]
+        case .tipTapLeft3F: anchors = [false, true, true]
+        case .tipTapRight3F: anchors = [true, true, false]
+        case .threeFingerTap: anchors = [false, false, false]
+        case .fourFingerTap: anchors = [false, false, false, false]
+        }
+        return anchors.enumerated().map { index, resting in
+            Finger(id: index, x: 0.5 + (CGFloat(index) - CGFloat(anchors.count - 1) / 2) * 0.21, resting: resting)
         }
     }
 }
-

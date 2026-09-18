@@ -27,6 +27,9 @@ jobs:
           swift --version
           xcodebuild -version
 
+      - name: Run Regression Tests
+        run: swift test
+
       - name: Build Application Bundle
         run: |
           chmod +x scripts/build_app.sh
@@ -60,32 +63,17 @@ jobs:
           
           echo "Target Release Tag: ${TAG}"
           
-          if [ -f "RELEASE_NOTES.md" ]; then
-            RELEASE_NOTES=$(cat RELEASE_NOTES.md)
-          else
-            RELEASE_NOTES="### Deck ${TAG} 🚀
-            
-            Release build for **Deck** macOS native efficiency platform.
-            
-            #### 📥 Installation
-            1. Download \`Deck-macOS.zip\` below.
-            2. Unzip to obtain \`Deck.app\`.
-            3. Drag \`Deck.app\` into your \`/Applications\` folder.
-            4. If macOS displays a Gatekeeper prompt on first launch, right-click (or Control-click) \`Deck.app\` and choose **Open**, or run:
-               \`\`\`bash
-               xattr -cr /Applications/Deck.app
-               \`\`\`
-            "
-          fi
-          
+          NOTES_FILE="RELEASE_NOTES.md"
+          test -s "$NOTES_FILE"
+
           if gh release view "${TAG}" >/dev/null 2>&1; then
             echo "Release ${TAG} already exists, updating asset and notes..."
             gh release upload "${TAG}" Deck-macOS.zip --clobber
-            gh release edit "${TAG}" --notes "${RELEASE_NOTES}"
+            gh release edit "${TAG}" --notes-file "$NOTES_FILE"
           else
             echo "Creating new GitHub Release ${TAG}..."
             gh release create "${TAG}" Deck-macOS.zip \
               --title "Deck ${TAG}" \
-              --notes "${RELEASE_NOTES}" \
+              --notes-file "$NOTES_FILE" \
               --target "${GITHUB_SHA}"
           fi

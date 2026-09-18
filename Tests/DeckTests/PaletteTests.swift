@@ -2,7 +2,7 @@ import XCTest
 import AppKit
 @testable import Deck
 
-final class PaletteTests: XCTestCase {
+final class PaletteTests: IsolatedDeckTestCase {
 
     // MARK: - 1. PaletteItem Tests
     func testPaletteItemDisplayKey() {

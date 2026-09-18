@@ -4,8 +4,10 @@ import SwiftUI
 
 class CustomMainWindow: NSWindow {
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        // Let an attached editor sheet handle Escape / Command-W itself.
+        if attachedSheet != nil { return super.performKeyEquivalent(with: event) }
         // 支持 Command + W 关闭窗口
-        if event.modifierFlags.contains(.command) {
+        if event.modifierFlags.intersection([.command, .control, .option, .shift]) == .command {
             if let chars = event.charactersIgnoringModifiers, chars.lowercased() == "w" {
                 self.performClose(nil)
                 return true
@@ -33,7 +35,7 @@ public class MainWindowController: NSObject, NSWindowDelegate {
         }
 
         let newWindow = CustomMainWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 850, height: 580),
+            contentRect: NSRect(x: 0, y: 0, width: 980, height: 680),
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
@@ -43,7 +45,7 @@ public class MainWindowController: NSObject, NSWindowDelegate {
         newWindow.titlebarAppearsTransparent = true
         newWindow.isOpaque = true
         newWindow.backgroundColor = NSColor(red: 0.980, green: 0.983, blue: 0.988, alpha: 1.0)
-        newWindow.minSize = NSSize(width: 760, height: 500)
+        newWindow.contentMinSize = NSSize(width: 900, height: 560)
         newWindow.center()
         newWindow.isReleasedWhenClosed = false
         newWindow.delegate = self

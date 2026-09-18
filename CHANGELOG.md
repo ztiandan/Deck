@@ -4,6 +4,27 @@ All notable changes to **Deck** will be documented in this file.
 
 ---
 
+## [v1.1.3] - 2026-09-18
+
+### Added
+- Animated trackpad gesture demonstrations and improved settings layout.
+- Persistent Hosts drafts, write/readback verification, DNS resolution checks, folder controls, and working hover previews.
+- Configuration recovery backups and expanded regression coverage to 63 tests.
+
+### Fixed
+- Global hotkey compilation and missing service-status localization.
+- Invalid/duplicate palette mappings, modified Space misfires, and application-name fallback selecting an unintended app.
+- Gesture shortcut edits using stale key codes, conflicting enabled rules, and false simultaneous-tap detection after recontact.
+- Hosts permission handling, failed-apply state changes, draft cleanup before persistence, group-exclusivity preferences, and IPv4/IPv6 resolution comparison.
+- Window sizing, shortcut preset wrapping, and Escape handling while editing a sheet.
+
+### Changed
+- New installations keep example Hosts profiles disabled.
+- Tests use isolated configuration stores; release builds run tests and verify signatures before publishing.
+- Three-finger TipTap uses two resting fingers and one tapping finger. See the in-app demonstration for the supported gesture.
+
+---
+
 ## [v1.1.2] - 2026-09-18
 
 ### Added

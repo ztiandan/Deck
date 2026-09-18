@@ -34,8 +34,12 @@ public enum DeckTab: String, CaseIterable, Identifiable {
 public struct MainContainerView: View {
     @State public var selectedTab: DeckTab = .appSwitcher
     @ObservedObject var hostsStore = HostsStore.shared
+    @ObservedObject var hostsManager = HostsManager.shared
     @ObservedObject var configStore = ConfigStore.shared
     @ObservedObject var gestureStore = GestureStore.shared
+    @ObservedObject var configurationIssue = ConfigurationIssue.shared
+    @ObservedObject var hotKeyManager = HotKeyManager.shared
+    @ObservedObject var touchpadManager = TouchpadManager.shared
     @ObservedObject var l10n = LocalizationManager.shared
 
     public init(initialTab: DeckTab = .appSwitcher) {
@@ -122,8 +126,8 @@ public struct MainContainerView: View {
                                 title: loc(.navActiveHosts),
                                 icon: "eye.fill",
                                 isSelected: selectedTab == .viewHosts,
-                                badgeText: "\(hostsStore.config.profiles.filter { $0.isEnabled }.count)",
-                                badgeColor: .green,
+                                badgeText: hostsManager.isConfigApplied(hostsStore.config) ? "\(hostsStore.config.profiles.filter { $0.isEnabled }.count)" : "!",
+                                badgeColor: hostsManager.isConfigApplied(hostsStore.config) ? .green : .orange,
                                 action: { selectedTab = .viewHosts }
                             )
                         }
@@ -153,14 +157,14 @@ public struct MainContainerView: View {
                 // 底部状态提示
                 HStack(spacing: 8) {
                     Circle()
-                        .fill(Color.green)
+                        .fill(hotKeyManager.isListening && touchpadManager.isRunning ? Color.green : Color.orange)
                         .frame(width: 6, height: 6)
                         .shadow(color: Color.green.opacity(0.4), radius: 2)
-                    Text(loc(.serviceRunning))
+                    Text(loc(hotKeyManager.isListening && touchpadManager.isRunning ? .serviceRunning : .serviceNeedsAttention))
                         .font(.system(size: 10.5, weight: .medium))
                         .foregroundColor(.secondary)
                     Spacer()
-                    Text("v" + (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.1.2"))
+                    Text("v" + (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.1.3"))
                         .font(.system(size: 10, weight: .semibold, design: .monospaced))
                         .foregroundColor(.secondary.opacity(0.7))
                 }
@@ -195,7 +199,16 @@ public struct MainContainerView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(DeckTheme.canvasBackground)
         }
-        .frame(minWidth: 800, minHeight: 560)
+        .frame(minWidth: 880, minHeight: 560)
+        .onAppear { hostsManager.refreshSystemContent() }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            hostsManager.refreshSystemContent()
+        }
+        .alert(loc(.configIssueTitle), isPresented: Binding(get: { configurationIssue.message != nil }, set: { if !$0 { configurationIssue.message = nil } })) {
+            Button("OK") { configurationIssue.message = nil }
+        } message: {
+            Text(configurationIssue.message ?? "")
+        }
     }
 }
 

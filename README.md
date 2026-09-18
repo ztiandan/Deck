@@ -23,7 +23,7 @@
 Directly bridges to macOS hardware touch frame streams with sub-millisecond latency, state-machine detection, and debounce cooldown:
 - **TipTap Right (2 Fingers Fix)** ➔ `⌘ W`: Hold 1 finger left, tap 1 finger right — close active browser tab or window instantly.
 - **TipTap Left (2 Fingers Fix)** ➔ `⌘ R`: Hold 1 finger right, tap 1 finger left — reload current page.
-- **TipTap Left (3 Fingers Fix)** ➔ `^ ⇧ →`: Hold 2 fingers, tap leftmost finger — switch to previous tab/desktop.
+- **TipTap Left (3 Fingers Fix)** ➔ `^ ←`: Hold 2 fingers, tap leftmost finger — switch to previous tab/desktop.
 - **TipTap Right (3 Fingers Fix)** ➔ `^ →`: Hold 2 fingers, tap rightmost finger — switch to next tab/desktop.
 - **4-Finger Tap** ➔ `CMD(⌘) + Click`: Tap with 4 fingers simultaneously — open link in background tab.
 - **Menubar Quick Toggle**: Pause or resume gesture monitoring at any time directly from the menubar.
@@ -31,13 +31,13 @@ Directly bridges to macOS hardware touch frame streams with sub-millisecond late
 ### 2. 🌐 Multi-Environment Hosts Management
 - **Instant Status Bar Switching**: Switch between `Default`, `Development`, `Testing`, and `Production` profiles with a single click.
 - **Folders & Mutually Exclusive Groups**: Organize profiles into logical folders with optional mutual exclusion (allowing only one profile active per group).
-- **🚀 Passwordless Writing Mode**: One-click authorization enables zero-prompt, zero-delay writes to `/etc/hosts` (< 1ms).
-- **Native Code Editor & System Inspector**: Built-in monospaced editor with syntax highlighting, adaptive Light & Dark themes, live `/etc/hosts` overview, and silent DNS cache flushing (`dscacheutil` & `mDNSResponder`).
+- **🚀 Passwordless Writing Mode**: One-time authorization grants your current account write access to `/etc/hosts`. Updates preserve file ownership and permissions, then read back the file to verify the result.
+- **Native Editor & System Inspector**: Built-in monospaced editor with persistent drafts, adaptive Light & Dark themes, `/etc/hosts` overview refreshed on activation, and silent DNS cache flushing through `dscacheutil`.
 
 ### 3. ⚡️ Instant HUD App Switcher & Palette
 - **Global Single-Key Summoning**: Trigger a translucent, native HUD palette anywhere on screen with a single key (e.g., `F18`, easily mapped from `CapsLock` via Karabiner).
 - **Keystroke Direct Activation**: Single key presses instantly switch to designated applications (e.g., `c` for Google Chrome, `v` for Visual Studio Code, `|` to cycle back to the previous application).
-- **Mechanical Keycap 2.0 Aesthetic**: Refined physical keycap appearance, instant search filtering, and custom app binding support.
+- **Mechanical Keycap 2.0 Aesthetic**: Refined physical keycap appearance, search filtering in mapping settings, and custom app bindings with duplicate-key validation.
 
 ---
 
@@ -83,7 +83,8 @@ open Deck.app
 
 Deck requires standard macOS Accessibility permissions for global key listener and trackpad event simulation:
 1. On first launch, follow the system prompt to allow **Deck** under **System Settings -> Privacy & Security -> Accessibility**.
-2. In Deck's **General Settings**, click **"Enable Passwordless"** once to enable seamless `/etc/hosts` synchronization without repeated password prompts.
+2. Click **Apply** (or **General Settings → Enable Passwordless**) to authorize your current account once if needed. Later updates write to the existing `/etc/hosts` file without repeated password prompts. Applying an inactive profile also enables it, respecting group exclusivity.
+3. **Applied** means the file has been read back and verified. Use **Check resolution** to compare the first custom domain with the system resolver. VPN/proxy DNS and browser caches can still return a different address even when the hosts file is correct.
 
 ---
 

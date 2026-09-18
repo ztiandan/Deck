@@ -87,11 +87,11 @@ public class AppSwitcher {
             return
         }
 
-        // 尝试通过名字在 runningApplications 中模糊匹配
-        if let name = displayName {
-            let cleanName = name.replacingOccurrences(of: "Activate ", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
+        // Legacy mappings without an app identity may match an exact application name.
+        let fallbackName = Self.fallbackName(bundleIdentifier: bundleIdentifier, appPath: appPath, displayName: displayName)
+        if let cleanName = fallbackName {
             if let running = runningApps.first(where: {
-                $0.localizedName?.localizedCaseInsensitiveContains(cleanName) == true
+                $0.localizedName?.caseInsensitiveCompare(cleanName) == .orderedSame
             }) {
                 running.unhide()
                 running.activate(options: [.activateIgnoringOtherApps])
@@ -107,8 +107,7 @@ public class AppSwitcher {
         } else if let bundleId = bundleIdentifier,
                   let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleId) {
             targetURL = url
-        } else if let name = displayName {
-            let cleanName = name.replacingOccurrences(of: "Activate ", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
+        } else if let cleanName = fallbackName {
             // 尝试在 /Applications 或 /System/Applications 中寻找
             let candidatePaths = [
                 "/Applications/\(cleanName).app",
@@ -138,5 +137,14 @@ public class AppSwitcher {
                 app?.activate(options: [.activateIgnoringOtherApps])
             }
         }
+    }
+
+    /// An explicit app identity must never fall back to a similarly named app.
+    static func fallbackName(bundleIdentifier: String?, appPath: String?, displayName: String?) -> String? {
+        guard bundleIdentifier?.isEmpty != false, appPath?.isEmpty != false,
+              var name = displayName?.trimmingCharacters(in: .whitespacesAndNewlines) else { return nil }
+        if name.hasPrefix("Activate ") { name.removeFirst("Activate ".count) }
+        name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        return name.isEmpty ? nil : name
     }
 }

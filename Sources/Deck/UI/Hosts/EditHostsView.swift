@@ -3,6 +3,7 @@ import AppKit
 
 public struct EditHostsView: View {
     @ObservedObject var hostsStore = HostsStore.shared
+    @ObservedObject var hostsManager = HostsManager.shared
     @ObservedObject var l10n = LocalizationManager.shared
 
     @State private var selectedProfileId: UUID?
@@ -13,6 +14,10 @@ public struct EditHostsView: View {
     @State private var newProfileTitle: String = ""
     @State private var newGroupTitle: String = ""
     @State private var statusMessage: String?
+    @State private var resolutionMessage: String?
+    @State private var resolutionMatches = false
+    @State private var isCheckingResolution = false
+    @State private var resolutionRequest = UUID()
 
     public init() {}
 
@@ -45,36 +50,51 @@ public struct EditHostsView: View {
                         ForEach(hostsStore.config.profiles.filter { $0.groupId == nil }) { profile in
                             ProfileListRow(
                                 profile: profile,
+                                isApplied: hostsManager.isConfigApplied(hostsStore.config) && !(selectedProfileId == profile.id && hasUnsavedChanges),
                                 isSelected: selectedProfileId == profile.id,
                                 onSelect: { selectedProfileId = profile.id },
                                 onToggle: { hostsStore.toggleProfile(id: profile.id) }
                             )
+                            .help(hostsStore.config.previewOnHover ? hostsStore.editingContent(for: profile) : "")
                         }
 
                         // 分组
                         ForEach(hostsStore.config.groups) { group in
                             VStack(alignment: .leading, spacing: 2) {
-                                HStack(spacing: 5) {
-                                    Image(systemName: "folder.fill")
-                                        .font(.system(size: 10))
-                                        .foregroundColor(.secondary)
-                                    Text(group.title)
-                                        .font(.system(size: 11, weight: .bold))
-                                        .foregroundColor(.secondary)
-                                    Spacer()
+                                Button(action: { hostsStore.toggleGroupExpanded(id: group.id) }) {
+                                    HStack(spacing: 5) {
+                                        Image(systemName: group.isExpanded ? "chevron.down" : "chevron.right")
+                                            .font(.system(size: 9))
+                                        Image(systemName: "folder.fill")
+                                            .font(.system(size: 10))
+                                            .foregroundColor(.secondary)
+                                        Text(group.title)
+                                            .font(.system(size: 11, weight: .bold))
+                                            .foregroundColor(.secondary)
+                                        Spacer()
+                                    }
+                                    .padding(.horizontal, 10)
+                                    .padding(.top, 10)
+                                    .padding(.bottom, 2)
+                                    .contentShape(Rectangle())
                                 }
-                                .padding(.horizontal, 10)
-                                .padding(.top, 10)
-                                .padding(.bottom, 2)
+                                .buttonStyle(.plain)
+                                .contextMenu {
+                                    Button(loc(.hostsDeleteFolder)) { hostsStore.deleteGroup(id: group.id) }
+                                }
 
-                                ForEach(hostsStore.config.profiles.filter { $0.groupId == group.id }) { profile in
-                                    ProfileListRow(
-                                        profile: profile,
-                                        isSelected: selectedProfileId == profile.id,
-                                        indent: 14,
-                                        onSelect: { selectedProfileId = profile.id },
-                                        onToggle: { hostsStore.toggleProfile(id: profile.id) }
-                                    )
+                                if group.isExpanded {
+                                    ForEach(hostsStore.config.profiles.filter { $0.groupId == group.id }) { profile in
+                                        ProfileListRow(
+                                            profile: profile,
+                                            isApplied: hostsManager.isConfigApplied(hostsStore.config) && !(selectedProfileId == profile.id && hasUnsavedChanges),
+                                            isSelected: selectedProfileId == profile.id,
+                                            indent: 14,
+                                            onSelect: { selectedProfileId = profile.id },
+                                            onToggle: { hostsStore.toggleProfile(id: profile.id) }
+                                        )
+                                        .help(hostsStore.config.previewOnHover ? hostsStore.editingContent(for: profile) : "")
+                                    }
                                 }
                             }
                         }
@@ -135,12 +155,12 @@ public struct EditHostsView: View {
                                     .font(.system(size: 13, weight: .bold))
 
                                 Circle()
-                                    .fill(profile.isEnabled ? Color.green : Color.gray.opacity(0.4))
+                                    .fill(profile.isEnabled ? (isApplied ? Color.green : Color.orange) : Color.gray.opacity(0.4))
                                     .frame(width: 7, height: 7)
 
-                                Text(profile.isEnabled ? loc(.hostsActiveStatus) : loc(.hostsDisabledStatus))
+                                Text(profile.isEnabled ? loc(isApplied ? .hostsActiveStatus : .hostsEnabledPending) : loc(.hostsDisabledStatus))
                                     .font(.system(size: 11, weight: .medium))
-                                    .foregroundColor(profile.isEnabled ? .green : .secondary)
+                                    .foregroundColor(profile.isEnabled ? (isApplied ? .green : .orange) : .secondary)
                             }
                         }
 
@@ -161,7 +181,10 @@ public struct EditHostsView: View {
                         .frame(height: 1)
 
                     // 专业等宽代码编辑器
-                    TextEditor(text: $editingContent)
+                    TextEditor(text: Binding(get: { editingContent }, set: { value in
+                        editingContent = value
+                        hostsStore.updateDraft(id: profile.id, content: value)
+                    }))
                         .font(.system(size: 13, weight: .regular, design: .monospaced))
                         .lineSpacing(5)
                         .padding(14)
@@ -170,37 +193,51 @@ public struct EditHostsView: View {
                         .foregroundColor(Color(NSColor.textColor))
                         .onChange(of: editingContent) { newValue in
                             hasUnsavedChanges = (newValue != profile.content)
+                            statusMessage = nil
+                            resolutionMessage = nil
+                            resolutionRequest = UUID()
+                            isCheckingResolution = false
                         }
 
                     Rectangle()
                         .fill(DeckTheme.dividerColor)
                         .frame(height: 1)
 
-                    // 编辑区底栏
-                    HStack {
-                        if let msg = statusMessage {
-                            Text(msg)
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundColor(.green)
+                    VStack(alignment: .leading, spacing: 8) {
+                        if let error = hostsManager.lastError {
+                            Text(error).foregroundColor(.red).textSelection(.enabled)
+                        } else if hostsManager.isConfigApplied(hostsStore.config), let message = statusMessage ?? hostsManager.lastApplyMessage {
+                            Text(message).foregroundColor(.green)
                         }
-
-                        Spacer()
-
-                        Button(loc(.hostsRevert)) {
-                            editingContent = profile.content
-                            hasUnsavedChanges = false
+                        if let message = resolutionMessage {
+                            Text(message)
+                                .foregroundColor(resolutionMatches ? .green : .orange)
+                                .textSelection(.enabled)
+                                .fixedSize(horizontal: false, vertical: true)
+                        } else {
+                            Text(loc(.hostsFileOnlyHint)).foregroundColor(.secondary)
                         }
-                        .disabled(!hasUnsavedChanges)
-                        .controlSize(.small)
-
-                        Button(loc(.hostsApply)) {
-                            applyChanges()
+                        HStack {
+                            Button(loc(isCheckingResolution ? .hostsCheckingResolution : .hostsCheckResolution)) {
+                                checkResolution()
+                            }
+                            .disabled(!isApplied || isCheckingResolution)
+                            Spacer()
+                            Button(loc(.hostsRevert)) {
+                                editingContent = profile.content
+                                hostsStore.updateDraft(id: profile.id, content: profile.content)
+                                hasUnsavedChanges = false
+                            }
+                            .disabled(!hasUnsavedChanges)
+                            Button(loc(.hostsApply)) { applyChanges() }
+                                .buttonStyle(.borderedProminent)
                         }
-                        .buttonStyle(.borderedProminent)
                         .controlSize(.small)
                     }
+                    .font(.system(size: 11))
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
+                    .padding(.vertical, 10)
                     .background(DeckTheme.barBackground)
                 } else {
                     VStack(spacing: 12) {
@@ -222,7 +259,12 @@ public struct EditHostsView: View {
                 selectedProfileId = hostsStore.config.profiles.first?.id
             }
             loadSelectedContent()
+            hostsManager.refreshSystemContent()
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            hostsManager.refreshSystemContent()
+        }
+        .onDisappear { hostsStore.saveDrafts() }
         .onChange(of: selectedProfileId) { _ in
             loadSelectedContent()
         }
@@ -254,34 +296,53 @@ public struct EditHostsView: View {
         hostsStore.config.profiles.first(where: { $0.id == selectedProfileId })
     }
 
+    private var isApplied: Bool {
+        selectedProfile?.isEnabled == true && !hasUnsavedChanges && hostsManager.isConfigApplied(hostsStore.config)
+    }
+
     private func loadSelectedContent() {
+        statusMessage = nil
+        resolutionMessage = nil
+        resolutionRequest = UUID()
+        isCheckingResolution = false
         if let profile = selectedProfile {
-            editingContent = profile.content
-            hasUnsavedChanges = false
+            editingContent = hostsStore.editingContent(for: profile)
+            hasUnsavedChanges = editingContent != profile.content
         }
     }
 
     private func applyChanges() {
         guard var profile = selectedProfile else { return }
         profile.content = editingContent
-        hostsStore.updateProfile(profile)
-        hasUnsavedChanges = false
-
-        let ok = HostsManager.shared.applyHostsToSystem()
-        if ok {
-            statusMessage = loc(.hostsApplySuccess)
+        if hostsStore.applyProfile(profile) {
+            hasUnsavedChanges = false
+            statusMessage = hostsManager.lastApplyMessage
+            checkResolution()
         } else {
-            statusMessage = loc(.hostsApplyFailed)
-        }
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
             statusMessage = nil
+            resolutionMessage = nil
+        }
+    }
+
+    private func checkResolution() {
+        let content = editingContent
+        let request = UUID()
+        resolutionRequest = request
+        isCheckingResolution = true
+        resolutionMessage = nil
+        Task { @MainActor in
+            let result = await Task.detached(priority: .utility) { HostsResolution.check(content: content) }.value
+            guard resolutionRequest == request else { return }
+            isCheckingResolution = false
+            guard isApplied else { return }
+            resolutionMatches = result?.matches ?? false
+            resolutionMessage = result?.message ?? loc(.hostsNoCustomDomain)
         }
     }
 
     private func deleteSelected() {
         guard let id = selectedProfileId else { return }
-        hostsStore.deleteProfile(id: id)
+        guard hostsStore.deleteProfile(id: id) else { return }
         selectedProfileId = hostsStore.config.profiles.first?.id
     }
 }
@@ -289,6 +350,7 @@ public struct EditHostsView: View {
 /// 方案行组件
 struct ProfileListRow: View {
     let profile: HostsProfile
+    let isApplied: Bool
     let isSelected: Bool
     var indent: CGFloat = 0
     let onSelect: () -> Void
@@ -302,10 +364,10 @@ struct ProfileListRow: View {
             Button(action: onToggle) {
                 ZStack {
                     Circle()
-                        .fill(profile.isEnabled ? Color.green.opacity(0.2) : Color.clear)
+                        .fill(profile.isEnabled ? (isApplied ? Color.green : Color.orange).opacity(0.2) : Color.clear)
                         .frame(width: 14, height: 14)
                     Circle()
-                        .fill(profile.isEnabled ? Color.green : Color.primary.opacity(0.2))
+                        .fill(profile.isEnabled ? (isApplied ? Color.green : Color.orange) : Color.primary.opacity(0.2))
                         .frame(width: 8, height: 8)
                 }
             }
@@ -319,9 +381,9 @@ struct ProfileListRow: View {
             Spacer()
 
             if profile.isEnabled {
-                Text(loc(.hostsActiveStatus))
+                Text(loc(isApplied ? .hostsActiveStatus : .hostsEnabledPending))
                     .font(.system(size: 9))
-                    .foregroundColor(isSelected ? .white.opacity(0.8) : .green)
+                    .foregroundColor(isSelected ? .white.opacity(0.8) : (isApplied ? .green : .orange))
             }
         }
         .padding(.leading, 8 + indent)

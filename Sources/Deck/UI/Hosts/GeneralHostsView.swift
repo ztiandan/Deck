@@ -6,6 +6,7 @@ public struct GeneralHostsView: View {
     @ObservedObject var l10n = LocalizationManager.shared
     @State private var isPasswordless: Bool = false
     @State private var statusTip: String?
+    @State private var permissionFailed = false
 
     public init() {}
 
@@ -126,10 +127,10 @@ public struct GeneralHostsView: View {
 
                             if !isPasswordless {
                                 Button(loc(.prefEnablePasswordless)) {
-                                    if HostsManager.shared.enablePasswordlessMode() {
-                                        isPasswordless = true
-                                        statusTip = loc(.prefPasswordlessSuccess)
-                                    }
+                                    let manager = HostsManager.shared
+                                    permissionFailed = !manager.enablePasswordlessMode()
+                                    isPasswordless = manager.isPasswordlessEnabled()
+                                    statusTip = permissionFailed ? manager.lastError : loc(.prefPasswordlessSuccess)
                                 }
                                 .controlSize(.regular)
                                 .buttonStyle(.borderedProminent)
@@ -138,11 +139,11 @@ public struct GeneralHostsView: View {
 
                         if let tip = statusTip {
                             HStack(spacing: 4) {
-                                Image(systemName: "checkmark.circle.fill")
+                                Image(systemName: permissionFailed ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
                                 Text(tip)
                             }
                             .font(.system(size: 11.5, weight: .medium))
-                            .foregroundColor(.green)
+                            .foregroundColor(permissionFailed ? .red : .green)
                             .padding(.top, 4)
                         }
                     }
@@ -162,7 +163,7 @@ public struct GeneralHostsView: View {
                 HStack(spacing: 6) {
                     Text(loc(.prefVersionLabel))
                         .foregroundColor(.secondary)
-                    Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.1.2")
+                    Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.1.3")
                         .font(.system(size: 11, weight: .semibold, design: .monospaced))
                         .foregroundColor(.primary)
                 }

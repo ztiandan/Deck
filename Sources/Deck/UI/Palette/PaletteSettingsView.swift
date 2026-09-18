@@ -345,6 +345,7 @@ struct ItemEditSheet: View {
     @State private var appPath: String = ""
     @State private var bundleId: String = ""
     @ObservedObject var l10n = LocalizationManager.shared
+    @ObservedObject var configStore = ConfigStore.shared
 
     init(item: PaletteItem?, onSave: @escaping (PaletteItem) -> Void, onCancel: @escaping () -> Void) {
         self.initialItem = item
@@ -357,9 +358,12 @@ struct ItemEditSheet: View {
         _bundleId = State(initialValue: item?.bundleIdentifier ?? "")
     }
 
-    private var isKeyValid: Bool {
-        let trimmed = key.trimmingCharacters(in: .whitespaces)
-        return !trimmed.isEmpty || key == " " || trimmed.lowercased() == "space"
+    private var keyError: L10nKey? {
+        PaletteItem.keyValidationError(key, excluding: initialItem?.id, items: configStore.config.items)
+    }
+
+    private var hasTarget: Bool {
+        isLastApp || !appPath.isEmpty || !bundleId.isEmpty || !displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     var body: some View {
@@ -405,13 +409,17 @@ struct ItemEditSheet: View {
                 }
             }
 
+            if let keyError, !key.isEmpty {
+                Text(loc(keyError)).font(.caption).foregroundColor(.orange)
+            }
+
             HStack {
                 Spacer()
                 Button(loc(.hostsCancel), action: onCancel)
                     .keyboardShortcut(.cancelAction)
 
                 Button(loc(.paletteSaveButton)) {
-                    let trimmed = key.trimmingCharacters(in: .whitespaces)
+                    let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)
                     let cleanedKey: String
                     if key == " " || trimmed.lowercased() == "space" || trimmed == "␣" || trimmed == "空格" {
                         cleanedKey = "Space"
@@ -431,7 +439,7 @@ struct ItemEditSheet: View {
                     onSave(item)
                 }
                 .keyboardShortcut(.defaultAction)
-                .disabled(!isKeyValid)
+                .disabled(keyError != nil || !hasTarget)
             }
         }
         .padding(20)

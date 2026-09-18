@@ -18,20 +18,10 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
             PaletteWindowController.shared.toggle()
         }
 
-        // 检查辅助功能权限并开始监听全局 F18 键
-        let trusted = HotKeyManager.shared.checkAccessibility(prompt: false)
-        if trusted {
-            HotKeyManager.shared.startListening()
-        } else {
-            // 轮询权限状态，一旦授权则自动启动全局监听
-            Timer.scheduledTimer(withTimeInterval: 1.5, repeats: true) { timer in
-                if HotKeyManager.shared.checkAccessibility(prompt: false) {
-                    HotKeyManager.shared.startListening()
-                    MenuBarManager.shared.rebuildMenu()
-                    timer.invalidate()
-                }
-            }
-        }
+        // Begin tracking before Deck becomes frontmost, so Last Application works
+        // on the very first palette invocation.
+        _ = AppSwitcher.shared
+        HotKeyManager.shared.startPollingAccessibility()
 
         // 初始化触控板手势增强引擎
         TouchpadManager.shared.start()
@@ -50,6 +40,8 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     public func applicationWillTerminate(_ notification: Notification) {
+        HostsStore.shared.saveDrafts()
+        HotKeyManager.shared.stopPollingAccessibility()
         HotKeyManager.shared.stopListening()
         TouchpadManager.shared.stop()
     }

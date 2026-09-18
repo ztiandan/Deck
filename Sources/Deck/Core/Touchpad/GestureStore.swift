@@ -6,23 +6,30 @@ public class GestureStore: ObservableObject {
 
     @Published public var gestures: [TouchpadGesture] = [] {
         didSet {
-            save()
+            if !isLoading { save() }
         }
     }
-    @Published public var isGlobalEnabled: Bool = true
+    @Published public var isGlobalEnabled: Bool {
+        didSet { preferences.set(isGlobalEnabled, forKey: "deck_gesture_enabled") }
+    }
     @Published public var isHapticFeedbackEnabled: Bool {
         didSet {
-            UserDefaults.standard.set(isHapticFeedbackEnabled, forKey: "deck_gesture_haptic_feedback")
+            preferences.set(isHapticFeedbackEnabled, forKey: "deck_gesture_haptic_feedback")
         }
     }
 
     private let fileURL: URL
+    private let preferences: UserDefaults
+    private var isLoading = false
 
-    private init() {
-        if UserDefaults.standard.object(forKey: "deck_gesture_haptic_feedback") != nil {
-            self.isHapticFeedbackEnabled = UserDefaults.standard.bool(forKey: "deck_gesture_haptic_feedback")
-        } else {
-            self.isHapticFeedbackEnabled = true
+    init(fileURL: URL? = nil, preferences: UserDefaults = .standard) {
+        self.preferences = preferences
+        self.isGlobalEnabled = preferences.object(forKey: "deck_gesture_enabled") as? Bool ?? true
+        self.isHapticFeedbackEnabled = preferences.object(forKey: "deck_gesture_haptic_feedback") as? Bool ?? true
+        if let fileURL {
+            self.fileURL = fileURL
+            load()
+            return
         }
 
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
@@ -43,64 +50,57 @@ public class GestureStore: ObservableObject {
     }
 
     public func load() {
+        isLoading = true
+        defer { isLoading = false }
         if FileManager.default.fileExists(atPath: fileURL.path) {
             do {
                 let data = try Data(contentsOf: fileURL)
                 var decoded = try JSONDecoder().decode([TouchpadGesture].self, from: data)
-                if !decoded.isEmpty {
-                    sanitizeNotes(&decoded)
-                    self.gestures = decoded
-                    return
-                }
+                sanitizeNotes(&decoded)
+                gestures = decoded
             } catch {
-                print("Failed to load gestures: \(error), using default")
+                ConfigurationIssue.shared.report(error, url: fileURL)
             }
+            return
         }
-
-        // Default preset productivity gestures
-        self.gestures = defaultGestures()
+        gestures = defaultGestures()
         save()
     }
 
     public func sanitizeNotes(_ list: inout [TouchpadGesture]) {
         let isEnglish = LocalizationManager.shared.currentLanguage == .english
-        var modified = false
         for i in 0..<list.count {
             // 修复历史遗留的 tipTapLeft3F 按键偏差（右箭头 -> 左箭头）
             if list[i].gestureType == .tipTapLeft3F && list[i].shortcutDisplay == "^ ⇧ →" && list[i].keyCode == 124 {
                 list[i].shortcutDisplay = "^ ←"
                 list[i].keyCode = 123
                 list[i].modifiers = ["ctrl"]
-                modified = true
             }
 
             switch list[i].notes {
             case "关闭标签页或窗口":
-                if isEnglish { list[i].notes = "Close tab or window"; modified = true }
+                if isEnglish { list[i].notes = "Close tab or window" }
             case "Close tab or window":
-                if !isEnglish { list[i].notes = "关闭标签页或窗口"; modified = true }
+                if !isEnglish { list[i].notes = "关闭标签页或窗口" }
             case "刷新当前页面":
-                if isEnglish { list[i].notes = "Reload current page"; modified = true }
+                if isEnglish { list[i].notes = "Reload current page" }
             case "Reload current page":
-                if !isEnglish { list[i].notes = "刷新当前页面"; modified = true }
+                if !isEnglish { list[i].notes = "刷新当前页面" }
             case "前一切换标签/桌面", "前一切换标签\\/桌面":
-                if isEnglish { list[i].notes = "Previous tab or desktop"; modified = true }
+                if isEnglish { list[i].notes = "Previous tab or desktop" }
             case "Previous tab or desktop", "Previous tab or space":
-                if !isEnglish { list[i].notes = "前一切换标签/桌面"; modified = true }
+                if !isEnglish { list[i].notes = "前一切换标签/桌面" }
             case "后一切换标签/桌面", "后一切换标签\\/桌面":
-                if isEnglish { list[i].notes = "Next tab or desktop"; modified = true }
+                if isEnglish { list[i].notes = "Next tab or desktop" }
             case "Next tab or desktop", "Next tab or space":
-                if !isEnglish { list[i].notes = "后一切换标签/桌面"; modified = true }
+                if !isEnglish { list[i].notes = "后一切换标签/桌面" }
             case "后台新标签打开网页":
-                if isEnglish { list[i].notes = "Open link in background tab"; modified = true }
+                if isEnglish { list[i].notes = "Open link in background tab" }
             case "Open link in background tab", "Open in background tab":
-                if !isEnglish { list[i].notes = "后台新标签打开网页"; modified = true }
+                if !isEnglish { list[i].notes = "后台新标签打开网页" }
             default:
                 break
             }
-        }
-        if modified {
-            save()
         }
     }
 
@@ -150,40 +150,50 @@ public class GestureStore: ObservableObject {
 
     public func save() {
         do {
-            let data = try JSONEncoder().encode(gestures)
-            try data.write(to: fileURL, options: .atomic)
+            try ConfigurationFile.write(gestures, to: fileURL)
         } catch {
-            print("Failed to save gestures: \(error)")
+            ConfigurationIssue.shared.report(error, url: fileURL)
         }
     }
 
     public func addGesture(_ gesture: TouchpadGesture) {
-        gestures.append(gesture)
-        save()
+        var updated = gestures
+        if gesture.isEnabled {
+            for i in updated.indices where updated[i].gestureType == gesture.gestureType {
+                updated[i].isEnabled = false
+            }
+        }
+        updated.append(gesture)
+        gestures = updated
     }
 
     public func removeGesture(id: UUID) {
         gestures.removeAll { $0.id == id }
-        save()
     }
 
     public func updateGesture(_ gesture: TouchpadGesture) {
         if let idx = gestures.firstIndex(where: { $0.id == gesture.id }) {
-            gestures[idx] = gesture
-            save()
+            var updated = gestures
+            if gesture.isEnabled {
+                for i in updated.indices where i != idx && updated[i].gestureType == gesture.gestureType {
+                    updated[i].isEnabled = false
+                }
+            }
+            updated[idx] = gesture
+            gestures = updated
         }
     }
 
     public func toggleGesture(id: UUID) {
         if let idx = gestures.firstIndex(where: { $0.id == id }) {
-            gestures[idx].isEnabled.toggle()
-            save()
+            var gesture = gestures[idx]
+            gesture.isEnabled.toggle()
+            updateGesture(gesture)
         }
     }
 
     public func resetToDefault() {
         self.gestures = defaultGestures()
-        save()
     }
 
     public func updateNotesLanguage(to lang: AppLanguage) {

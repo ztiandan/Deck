@@ -1,7 +1,7 @@
 import XCTest
 @testable import Deck
 
-final class HostsTests: XCTestCase {
+final class HostsTests: IsolatedDeckTestCase {
 
     // MARK: - 1. HostsModel & Configuration
     func testHostsProfileCodable() throws {
@@ -53,7 +53,7 @@ final class HostsTests: XCTestCase {
 
     // MARK: - 2. HostsStore Group Mutual Exclusivity
     func testGroupExclusiveToggle() {
-        let store = HostsStore.shared
+        let store = HostsStore(fileURL: testDirectory.appendingPathComponent("hosts.json"))
         let originalConfig = store.config
 
         // Create an exclusive group with two profiles
@@ -85,12 +85,12 @@ final class HostsTests: XCTestCase {
 
     // MARK: - 3. HostsManager Merge Generation
     func testGenerateMergedContent() {
-        let manager = HostsManager.shared
-        let content = manager.generateMergedContent()
+        let config = HostsConfig.default
+        let content = HostsManager.generateMergedContent(config: config)
         XCTAssertFalse(content.isEmpty)
 
         // If default profile is active, it should contain localhost
-        if HostsStore.shared.config.profiles.contains(where: { $0.isEnabled && $0.content.contains("localhost") }) {
+        if config.profiles.contains(where: { $0.isEnabled && $0.content.contains("localhost") }) {
             XCTAssertTrue(content.contains("localhost"))
         }
     }

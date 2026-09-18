@@ -30,6 +30,11 @@ public enum L10nKey: String, CaseIterable {
     case navPreferences
     case navGeneralSettings
     case serviceRunning
+    case serviceNeedsAttention
+    case configIssueTitle
+    case paletteKeyInvalid
+    case paletteKeyDuplicate
+    case hostsDeleteFolder
 
     // Tab Titles
     case tabEditHosts
@@ -87,6 +92,22 @@ public enum L10nKey: String, CaseIterable {
     case hostsRefresh
     case hostsCopy
     case hostsCopied
+    case hostsEnabledPending
+    case hostsAlreadyApplied
+    case hostsVerificationFailed
+    case hostsPermissionFailed
+    case hostsRestoreFailed
+    case hostsAuthorizationPrompt
+    case hostsAuthorizationCancelled
+    case hostsReadFailed
+    case hostsCheckResolution
+    case hostsCheckingResolution
+    case hostsResolutionMatches
+    case hostsResolutionMixed
+    case hostsResolutionMismatch
+    case hostsResolutionMissing
+    case hostsNoCustomDomain
+    case hostsFileOnlyHint
     case hostsEmptyContent
 
     // General Preferences
@@ -143,6 +164,16 @@ public enum L10nKey: String, CaseIterable {
     case gestureHapticFeedbackDesc
     case gestureIllustrationHeader
     case gestureIllustrationBadge
+    case gestureShortcutInvalid
+    case gestureDemoPrepare
+    case gestureDemoReady
+    case gestureDemoTouch
+    case gestureDemoLift
+    case gestureDemoHoldShort
+    case gestureDemoTapShort
+    case gestureDemoLiftShort
+    case gestureDemoHint
+    case gestureDemoMultiHint
     case gestureDemoHoldFinger
     case gestureDemoTapFinger
     case gestureDemoSimultaneousTap
@@ -235,6 +266,11 @@ public class LocalizationManager: ObservableObject {
         .navPreferences: "PREFERENCES",
         .navGeneralSettings: "General Settings",
         .serviceRunning: "Service Running",
+        .serviceNeedsAttention: "Check service permissions",
+        .configIssueTitle: "Configuration could not be loaded or saved",
+        .paletteKeyInvalid: "Enter one character or Space.",
+        .paletteKeyDuplicate: "This key is already assigned to another action.",
+        .hostsDeleteFolder: "Remove folder and keep profiles",
 
         .tabEditHosts: "Edit Hosts Profiles",
         .tabViewHosts: "Active Hosts Overview",
@@ -269,13 +305,29 @@ public class LocalizationManager: ObservableObject {
         .hostsProfilesCountSuffix: "items",
         .hostsNewProfile: "New Hosts Profile...",
         .hostsNewFolder: "New Folder...",
-        .hostsActiveStatus: "Active",
+        .hostsActiveStatus: "Applied",
         .hostsDisabledStatus: "Disabled",
         .hostsUnsaved: "● Unsaved",
         .hostsRevert: "Revert",
+        .hostsEnabledPending: "Pending apply",
+        .hostsAlreadyApplied: "Already matches /etc/hosts; verified.",
+        .hostsVerificationFailed: "The content read back from /etc/hosts did not match. Please retry.",
+        .hostsPermissionFailed: "Could not grant write access to /etc/hosts.",
+        .hostsRestoreFailed: "Writing hosts and restoring the previous content failed. Check /etc/hosts before continuing.",
+        .hostsAuthorizationPrompt: "Allow your current account to write /etc/hosts. Future changes from this account will not need an administrator password.",
+        .hostsAuthorizationCancelled: "Authorization cancelled. Changes have not been applied.",
+        .hostsReadFailed: "Could not read /etc/hosts. This view only shows the actual system file.",
+        .hostsCheckResolution: "Check resolution",
+        .hostsCheckingResolution: "Checking the first custom domain…",
+        .hostsResolutionMatches: "%@: expected %@; resolved %@. Matches.",
+        .hostsResolutionMixed: "%@: expected %@; resolved %@. The expected address is present, but extra addresses may still be used. Check IPv6 and VPN/proxy DNS.",
+        .hostsResolutionMismatch: "%@: expected %@; resolved %@. The hosts file is written, but DNS differs. Check VPN/proxy DNS and application caches.",
+        .hostsResolutionMissing: "No address returned",
+        .hostsNoCustomDomain: "No custom domain to check.",
+        .hostsFileOnlyHint: "Applied verifies the system file. Check resolution to see whether DNS follows it.",
         .hostsApply: "Apply",
         .hostsSelectPrompt: "Select a Hosts profile on the left to edit",
-        .hostsApplySuccess: "✓ Successfully applied to /etc/hosts",
+        .hostsApplySuccess: "Written to /etc/hosts and verified.",
         .hostsApplyFailed: "⚠️ Requires authorization or failed",
         .hostsProfileName: "Profile Name:",
         .hostsFolder: "Folder:",
@@ -304,8 +356,8 @@ public class LocalizationManager: ObservableObject {
         .prefPrivilegesSection: "Permissions & Privileges",
         .prefPasswordlessActive: "Passwordless Mode Enabled",
         .prefPasswordlessInactive: "Passwordless Mode Disabled",
-        .prefPasswordlessActiveDesc: "Hosts modifications write directly without password prompts.",
-        .prefPasswordlessInactiveDesc: "Enable to update hosts instantly without entering admin passwords.",
+        .prefPasswordlessActiveDesc: "Your current account can write hosts directly; Apply verifies the saved contents.",
+        .prefPasswordlessInactiveDesc: "Authorize once to let your current account write hosts without repeated password prompts.",
         .prefEnablePasswordless: "Enable Passwordless",
         .prefPasswordlessSuccess: "Passwordless mode successfully enabled",
         .prefVersionLabel: "Deck Version:",
@@ -342,7 +394,17 @@ public class LocalizationManager: ObservableObject {
         .gestureHapticFeedbackToggle: "Haptic Feedback on Trackpad",
         .gestureHapticFeedbackDesc: "Provide subtle tactile click feedback when gesture triggers",
         .gestureIllustrationHeader: "How it Works (Gesture Demonstration)",
-        .gestureIllustrationBadge: "Live Demo",
+        .gestureIllustrationBadge: "Gesture Demo",
+        .gestureShortcutInvalid: "Enter a shortcut such as ⌘ W or ctrl+left.",
+        .gestureDemoPrepare: "1 · Rest fingers",
+        .gestureDemoReady: "1 · Position fingers",
+        .gestureDemoTouch: "2 · Touch down",
+        .gestureDemoLift: "3 · Lift to trigger",
+        .gestureDemoHoldShort: "Hold",
+        .gestureDemoTapShort: "Tap",
+        .gestureDemoLiftShort: "Lift",
+        .gestureDemoHint: "Keep blue fingers resting. Touch and lift orange fingers; do not press or swipe.",
+        .gestureDemoMultiHint: "Touch and lift all fingers together. No click or swipe needed.",
         .gestureDemoHoldFinger: "Resting / Anchored",
         .gestureDemoTapFinger: "Tap once",
         .gestureDemoSimultaneousTap: "Tap simultaneously",
@@ -397,6 +459,11 @@ public class LocalizationManager: ObservableObject {
         .navPreferences: "偏好",
         .navGeneralSettings: "通用设置",
         .serviceRunning: "服务运行中",
+        .serviceNeedsAttention: "请检查服务权限",
+        .configIssueTitle: "配置读取或保存失败",
+        .paletteKeyInvalid: "请输入单个字符或 Space。",
+        .paletteKeyDuplicate: "该按键已分配给其他操作。",
+        .hostsDeleteFolder: "删除文件夹并保留方案",
 
         .tabEditHosts: "编辑 Hosts 方案",
         .tabViewHosts: "生效 Hosts 全览",
@@ -431,13 +498,29 @@ public class LocalizationManager: ObservableObject {
         .hostsProfilesCountSuffix: "个",
         .hostsNewProfile: "新建 Hosts 方案...",
         .hostsNewFolder: "新建分组文件夹...",
-        .hostsActiveStatus: "生效中",
+        .hostsActiveStatus: "已应用",
         .hostsDisabledStatus: "未启用",
         .hostsUnsaved: "● 未保存",
         .hostsRevert: "撤回",
+        .hostsEnabledPending: "待应用",
+        .hostsAlreadyApplied: "与 /etc/hosts 一致，已核验。",
+        .hostsVerificationFailed: "读回的 /etc/hosts 内容不一致，请重试。",
+        .hostsPermissionFailed: "未能取得 /etc/hosts 写入权限。",
+        .hostsRestoreFailed: "写入失败，且未能恢复原内容，请先检查 /etc/hosts。",
+        .hostsAuthorizationPrompt: "允许当前账户写入 /etc/hosts。授权后，此账户后续修改无需再输入管理员密码。",
+        .hostsAuthorizationCancelled: "已取消授权，修改尚未应用。",
+        .hostsReadFailed: "无法读取 /etc/hosts。此页面仅展示真实系统文件。",
+        .hostsCheckResolution: "检查解析",
+        .hostsCheckingResolution: "正在检查首个自定义域名…",
+        .hostsResolutionMatches: "%@：预期 %@；实际 %@。解析匹配。",
+        .hostsResolutionMixed: "%@：预期 %@；实际 %@。包含预期地址，但仍可能使用其他返回地址，请检查 IPv6 和 VPN／代理 DNS。",
+        .hostsResolutionMismatch: "%@：预期 %@；实际 %@。hosts 已写入，但解析不一致，请检查 VPN／代理 DNS 和应用缓存。",
+        .hostsResolutionMissing: "未返回地址",
+        .hostsNoCustomDomain: "没有可检查的自定义域名。",
+        .hostsFileOnlyHint: "“已应用”表示系统文件已核验；点击“检查解析”确认 DNS 是否使用该映射。",
         .hostsApply: "应用生效",
         .hostsSelectPrompt: "请从左侧选择一个 Hosts 方案进行编辑",
-        .hostsApplySuccess: "✓ 已成功应用至系统 /etc/hosts",
+        .hostsApplySuccess: "已写入 /etc/hosts 并读回核验。",
         .hostsApplyFailed: "⚠️ 应用需授权或失败，请检查",
         .hostsProfileName: "方案名称:",
         .hostsFolder: "所属分组:",
@@ -466,8 +549,8 @@ public class LocalizationManager: ObservableObject {
         .prefPrivilegesSection: "权限与提权",
         .prefPasswordlessActive: "免密模式已开启",
         .prefPasswordlessInactive: "未开启免密切换",
-        .prefPasswordlessActiveDesc: "修改 Hosts 无需弹窗输入密码，即时写入生效。",
-        .prefPasswordlessInactiveDesc: "点击开启后，修改 Hosts 无需重复输入系统密码。",
+        .prefPasswordlessActiveDesc: "当前账户可直接写入 hosts；应用后会读回核验。",
+        .prefPasswordlessInactiveDesc: "授权一次，允许当前账户写入 hosts，之后无需重复输入密码。",
         .prefEnablePasswordless: "开启免密",
         .prefPasswordlessSuccess: "已成功开启免密模式",
         .prefVersionLabel: "Deck 版本:",
@@ -505,6 +588,16 @@ public class LocalizationManager: ObservableObject {
         .gestureHapticFeedbackDesc: "手势触发时通过触控板 Taptic 引擎提供物理敲击感",
         .gestureIllustrationHeader: "操作手势动态示意",
         .gestureIllustrationBadge: "动态演示",
+        .gestureShortcutInvalid: "请输入有效快捷键，例如 ⌘ W 或 ctrl+left。",
+        .gestureDemoPrepare: "1 · 先放稳手指",
+        .gestureDemoReady: "1 · 准备轻点",
+        .gestureDemoTouch: "2 · 轻触板面",
+        .gestureDemoLift: "3 · 抬起触发",
+        .gestureDemoHoldShort: "保持",
+        .gestureDemoTapShort: "轻点",
+        .gestureDemoLiftShort: "抬起",
+        .gestureDemoHint: "蓝色手指保持接触；橙色手指轻触后抬起，无需按下或滑动。",
+        .gestureDemoMultiHint: "所有手指同时轻触后抬起，无需按下或滑动。",
         .gestureDemoHoldFinger: "手指平放固定",
         .gestureDemoTapFinger: "单指快速轻敲",
         .gestureDemoSimultaneousTap: "多指同时轻点",

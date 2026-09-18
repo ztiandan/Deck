@@ -63,23 +63,35 @@ public struct PaletteItem: Identifiable, Codable, Equatable {
         return key
     }
 
-    /// 判断按键事件是否与当前配置项匹配
+    static func normalizedKey(_ key: String) -> String? {
+        let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)
+        if key == " " || ["space", "␣", "空格"].contains(trimmed.lowercased()) { return " " }
+        guard trimmed.count == 1, !trimmed.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) }) else { return nil }
+        return trimmed.lowercased()
+    }
+
+    static func keyValidationError(_ key: String, excluding id: UUID? = nil, items: [PaletteItem]) -> L10nKey? {
+        guard let normalized = normalizedKey(key) else { return .paletteKeyInvalid }
+        if items.contains(where: { $0.id != id && normalizedKey($0.key) == normalized }) {
+            return .paletteKeyDuplicate
+        }
+        return nil
+    }
+
+    static func action(for event: NSEvent, items: [PaletteItem]) -> PaletteItem? {
+        guard !event.isARepeat,
+              event.modifierFlags.intersection([.command, .control, .option]).isEmpty else { return nil }
+        if let matched = items.first(where: { $0.matches(event: event) }) { return matched }
+        if event.keyCode == 49 { return items.first(where: { $0.actionType == .activateLastApp }) }
+        return nil
+    }
+
+    /// Plain keys only: Command-C in the HUD must not accidentally activate Chrome.
     public func matches(event: NSEvent) -> Bool {
-        let trimmed = key.trimmingCharacters(in: .whitespaces)
-        let isSpaceConfigured = key == " " || trimmed.lowercased() == "space" || trimmed == "␣" || trimmed == "空格"
-
-        // 1. 按下空格键 (kVK_Space == 49)
-        if event.keyCode == 49 {
-            return isSpaceConfigured
-        }
-
-        // 2. 匹配字符输入
+        guard event.modifierFlags.intersection([.command, .control, .option]).isEmpty,
+              let configured = Self.normalizedKey(key) else { return false }
+        if event.keyCode == 49 { return configured == " " }
         guard let chars = event.characters, !chars.isEmpty else { return false }
-        if isSpaceConfigured && chars == " " {
-            return true
-        }
-
-        let pressed = chars.lowercased()
-        return key == chars || key.lowercased() == pressed
+        return configured == chars.lowercased()
     }
 }

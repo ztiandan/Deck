@@ -70,7 +70,7 @@ public enum GestureActionType: String, Codable, CaseIterable {
         case "middleClick", "鼠标中键点击", "鼠标中键":
             self = .middleClick
         default:
-            self = .shortcut
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Unsupported gesture action: \(raw)")
         }
     }
 }

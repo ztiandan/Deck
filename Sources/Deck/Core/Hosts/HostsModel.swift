@@ -87,7 +87,7 @@ public struct HostsConfig: Codable {
         let testProfile = HostsProfile(
             title: "Test",
             content: "# Test environment\n127.0.0.1 test.example.com\n127.0.0.1 api-test.example.com",
-            isEnabled: true,
+            isEnabled: false,
             groupId: demoGroup.id,
             order: 2
         )
