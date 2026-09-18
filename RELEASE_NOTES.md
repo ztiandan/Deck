@@ -4,28 +4,30 @@ Release build for **Deck** macOS native efficiency platform.
 
 ---
 
-### 🌟 What's New in v1.1.2 (本次更新内容)
+### 🌟 What's New in v1.1.2
 
-#### 1. 🖐️ 触控板手势算法与灵敏度全面升级 (Trackpad Gestures Recognition Optimization)
-- **放宽轻敲判定窗口**：由原来苛刻的 `< 0.28s` 优化为 `0.04s ~ 0.38s`（四指轻点支持到 `0.42s`），位移容差提升至 `0.08`，更符合真实人手在触控板上的自然敲击习惯，告别手势难触发问题。
-- **防抖冷却缩短至 160ms**：支持连续快速双指敲击连关多个网页标签（`⌘ W`）或切换桌面（`^ →`），操作流畅不吞键。
-- **TipTap 3F 双向支持**：同时支持“2指按住 + 1指轻敲”与“1指按住 + 2指轻敲”。
-- **4指轻点精准防误触**：采用接触会话追踪最大指尖数与滑动位移，彻底杜绝与系统 4指滑动切换桌面（Mission Control）发生冲突误触。
+#### 1. 🖐️ Trackpad Gestures Engine & Sensitivity Upgrade
+- **Relaxed Tap Duration Window**: Broadened the tap detection window from `< 0.28s` to `0.04s ~ 0.38s` (up to `0.42s` for 4-finger taps), accommodating natural human finger pacing and eliminating missed triggers.
+- **Improved Displacement Tolerance**: Increased movement threshold to `0.08` to account for natural fingertip flattening and subtle contact rotation without misidentifying as drags or swipes.
+- **Reduced Debounce Cooldown**: Shortened cooldown from `300ms` to `160ms`, enabling users to rapidly close multiple tabs (`⌘ W`) or navigate desktops (`^ →`) in quick succession.
+- **TipTap 3F Flexibility**: Supported both `2 resting fingers + 1 tapping finger` and `1 resting finger + 2 tapping fingers` on both left and right sides.
+- **4-Finger Tap Swipe Rejection**: Rebuilt multi-finger session tracking to reliably capture 4-finger taps while strictly rejecting 4-finger swipes (Mission Control / workspace switching).
 
-#### 2. 🔗 浏览器后台打开标签失效修复 (Browser Background Tab Opening Fix)
-- 补齐底层 CoreGraphics `kCGMouseEventClickState = 1` 与精确全局光标坐标，并合成 Command 按键状态，彻底解决 Chrome、Safari、Arc、Firefox、Edge 等浏览器此前无法识别后台打开新标签的问题。
+#### 2. 🔗 Browser Background Tab Opening Fix (CMD + Click)
+- Added `kCGMouseEventClickState = 1`, proper button numbers, and synthetic Command key states in `ActionExecutor`, ensuring Chrome, Safari, Arc, Firefox, and Edge 100% reliably open links in background tabs.
+- Corrected mouse cursor coordinate mapping for multi-monitor and Retina display setups.
 
-#### 3. 📳 新增 Taptic Engine 触控板触觉反馈 (Haptic Feedback)
-- 手势成功触发时，通过 `NSHapticFeedbackManager` 驱动触控板发出清脆的物理轻微震动反馈，给手指即时的成功确认感。
-- 详情设置页提供“触控板触觉反馈”开关控制（默认开启）。
+#### 3. 📳 Taptic Engine Haptic Feedback
+- Added crisp physical vibration feedback powered by `NSHapticFeedbackManager` whenever a trackpad gesture triggers.
+- Added a dedicated "Haptic Feedback on Trackpad" toggle in Gesture Details (enabled by default).
 
-#### 4. 🎨 界面视觉与排版优化 (UI Layout & Naming Polish)
-- **消除文字截断**：去除不自然的 `"Fix"` 英文后缀，调宽左侧手势栏，彻底消除原截断为 `"TipTap Right (3 Fingers Fi..."` 的排版问题。
-- **视觉层级提升**：列表行展示“手势名 + 功能说明 + 右侧独立键帽徽标胶囊”，手势触发时增加动态微光动效。
-- **常用预设扩展**：预设按钮新增 `⌘ T`（新建标签）、`⌘ ⇧ [`（上一标签）、`⌘ ⇧ ]`（下一标签）。
+#### 4. 🎨 UI Polish & Layout Enhancements
+- **No More Text Truncation**: Removed the awkward `"Fix"` suffix from English names (`"TipTap Right (2 Fingers)"`, `"TipTap Left (2 Fingers)"`, etc.) and widened the sidebar column, eliminating truncated text like `"TipTap Right (3 Fingers Fi..."`.
+- **Enhanced Gesture List Rows**: Rows now display the gesture title, functional note description, and a clear keycap badge, with dynamic glowing pulse feedback upon gesture activation.
+- **Expanded Preset Shortcuts**: Added quick preset buttons for `⌘ T` (New Tab), `⌘ ⇧ [` (Previous Tab), and `⌘ ⇧ ]` (Next Tab).
 
-#### 5. 🧪 全功能单元测试套件覆盖 (Comprehensive Unit Test Suite)
-- 新增 22 项自动化单元测试，覆盖触控引擎、调色板按键匹配、Hosts 环境分组互斥逻辑、中英文本地化字典覆盖率，通过率 100%。
+#### 5. 🧪 Comprehensive Automated Unit Test Suite
+- Added 22 automated unit tests covering the Multitouch bridge memory layout, gesture recognition engine, action executor, palette key matching, Hosts mutual exclusivity, and full localization parity (100% pass rate).
 
 ---
 
