@@ -242,7 +242,10 @@ struct GestureDetailView: View {
                     .shadow(color: Color.black.opacity(0.03), radius: 4, x: 0, y: 1)
                 }
 
-                // 2. 参数设置卡片
+                // 2. 手势操作动态示意图
+                TrackpadGestureIllustrationView(gestureType: gesture.gestureType)
+
+                // 3. 参数设置卡片
                 VStack(alignment: .leading, spacing: 14) {
                     Text(loc(.gesturePropertiesHeader))
                         .font(.system(size: 13, weight: .bold))
@@ -460,3 +463,304 @@ struct AddGestureSheet: View {
         .frame(width: 360)
     }
 }
+
+/// 触控板手势操作动态示意图
+struct TrackpadGestureIllustrationView: View {
+    let gestureType: GestureType
+    @ObservedObject var l10n = LocalizationManager.shared
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text(loc(.gestureIllustrationHeader))
+                    .font(.system(size: 11.5, weight: .bold))
+                    .foregroundColor(.secondary)
+                Spacer()
+                HStack(spacing: 5) {
+                    Circle()
+                        .fill(Color.green)
+                        .frame(width: 5, height: 5)
+                    Text(loc(.gestureIllustrationBadge))
+                        .font(.system(size: 9.5, weight: .semibold))
+                        .foregroundColor(.secondary)
+                }
+                .padding(.horizontal, 7)
+                .padding(.vertical, 3)
+                .background(
+                    Capsule()
+                        .fill(Color.primary.opacity(0.06))
+                )
+            }
+
+            HStack(spacing: 16) {
+                // 模拟触控板动画画布
+                TimelineView(.periodic(from: .now, by: 1.0 / 30.0)) { context in
+                    TrackpadCanvas(gestureType: gestureType, date: context.date)
+                }
+                .frame(width: 170, height: 100)
+
+                // 详细操作步骤与图例
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(stepDescription)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.primary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    HStack(spacing: 12) {
+                        if showsRestingFingerLegend {
+                            HStack(spacing: 5) {
+                                Circle()
+                                    .fill(Color.blue.gradient)
+                                    .frame(width: 9, height: 9)
+                                Text(loc(.gestureDemoHoldFinger))
+                                    .font(.system(size: 10))
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+
+                        HStack(spacing: 5) {
+                            Circle()
+                                .fill(Color.orange.gradient)
+                                .frame(width: 9, height: 9)
+                            Text(isSimultaneousTap ? loc(.gestureDemoSimultaneousTap) : loc(.gestureDemoTapFinger))
+                                .font(.system(size: 10))
+                                .foregroundColor(.secondary)
+                        }
+                    }
+
+                    Text(gestureType.description)
+                        .font(.system(size: 10.5))
+                        .foregroundColor(.secondary.opacity(0.85))
+                        .lineLimit(2)
+                }
+
+                Spacer()
+            }
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Color(NSColor.controlBackgroundColor))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .stroke(Color.primary.opacity(0.06), lineWidth: 1)
+            )
+            .shadow(color: Color.black.opacity(0.03), radius: 4, x: 0, y: 1)
+        }
+    }
+
+    private var showsRestingFingerLegend: Bool {
+        switch gestureType {
+        case .tipTapRight2F, .tipTapLeft2F, .tipTapLeft3F, .tipTapRight3F:
+            return true
+        case .fourFingerTap, .threeFingerTap:
+            return false
+        }
+    }
+
+    private var isSimultaneousTap: Bool {
+        switch gestureType {
+        case .fourFingerTap, .threeFingerTap:
+            return true
+        default:
+            return false
+        }
+    }
+
+    private var stepDescription: String {
+        switch gestureType {
+        case .tipTapRight2F: return loc(.gestureDemoTipTapRight2F)
+        case .tipTapLeft2F: return loc(.gestureDemoTipTapLeft2F)
+        case .tipTapLeft3F: return loc(.gestureDemoTipTapLeft3F)
+        case .tipTapRight3F: return loc(.gestureDemoTipTapRight3F)
+        case .fourFingerTap: return loc(.gestureDemoFourFingerTap)
+        case .threeFingerTap: return loc(.gestureDemoThreeFingerTap)
+        }
+    }
+}
+
+/// 模拟触控板图形与手指运动
+struct TrackpadCanvas: View {
+    let gestureType: GestureType
+    let date: Date
+
+    var body: some View {
+        let time = date.timeIntervalSinceReferenceDate
+        let cycle = (time.truncatingRemainder(dividingBy: 1.5)) / 1.5 // 0.0 ... 1.0
+
+        // 敲击动态阶段计算
+        let tapProgress: (offset: CGFloat, scale: CGFloat, rippleScale: CGFloat, rippleOpacity: Double) = {
+            if cycle < 0.20 {
+                // 悬停准备阶段
+                return (offset: -7, scale: 0.9, rippleScale: 0, rippleOpacity: 0)
+            } else if cycle < 0.38 {
+                // 触板敲击瞬间
+                let p = (cycle - 0.20) / 0.18
+                return (offset: -7 * (1.0 - p), scale: 0.9 + 0.25 * p, rippleScale: 1.0 + p * 1.5, rippleOpacity: 1.0 - p)
+            } else if cycle < 0.55 {
+                // 短暂停留接触
+                let p = (cycle - 0.38) / 0.17
+                return (offset: 0, scale: 1.15 - 0.05 * p, rippleScale: 2.5, rippleOpacity: 0)
+            } else if cycle < 0.75 {
+                // 抬起阶段
+                let p = (cycle - 0.55) / 0.20
+                return (offset: -7 * p, scale: 1.1 - 0.2 * p, rippleScale: 0, rippleOpacity: 0)
+            } else {
+                // 静止间隙等待下一次循环
+                return (offset: -7, scale: 0.9, rippleScale: 0, rippleOpacity: 0)
+            }
+        }()
+
+        ZStack {
+            // 触控板外框底板
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [Color.primary.opacity(0.08), Color.primary.opacity(0.03)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .stroke(Color.primary.opacity(0.12), lineWidth: 1)
+                )
+
+            // 顶部微质感边缘
+            VStack {
+                Rectangle()
+                    .fill(Color.primary.opacity(0.08))
+                    .frame(height: 1)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 4)
+                Spacer()
+            }
+
+            // 手指接触点呈现
+            GeometryReader { geo in
+                let w = geo.size.width
+                let h = geo.size.height
+                let centerY = h * 0.48
+
+                ZStack {
+                    ForEach(fingerConfigs(for: gestureType, width: w), id: \.id) { config in
+                        if config.isResting {
+                            // 固定按压手指（平稳静止）
+                            VStack(spacing: 2) {
+                                ZStack {
+                                    Circle()
+                                        .fill(Color.blue.opacity(0.2))
+                                        .frame(width: 26, height: 26)
+
+                                    Circle()
+                                        .fill(
+                                            LinearGradient(
+                                                colors: [Color.blue, Color.blue.opacity(0.8)],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                        )
+                                        .frame(width: 19, height: 19)
+                                        .shadow(color: Color.blue.opacity(0.4), radius: 3, x: 0, y: 1)
+
+                                    Circle()
+                                        .fill(Color.white.opacity(0.7))
+                                        .frame(width: 5, height: 5)
+                                }
+
+                                Text("Hold")
+                                    .font(.system(size: 8, weight: .bold))
+                                    .foregroundColor(.blue.opacity(0.85))
+                            }
+                            .position(x: config.x, y: centerY)
+                        } else {
+                            // 动态轻敲手指（带悬停、触板冲击波、抬起动效）
+                            VStack(spacing: 2) {
+                                ZStack {
+                                    // 触板冲击扩散涟漪波
+                                    if tapProgress.rippleOpacity > 0.05 {
+                                        Circle()
+                                            .stroke(Color.orange.opacity(tapProgress.rippleOpacity), lineWidth: 1.8)
+                                            .frame(width: 19 * tapProgress.rippleScale, height: 19 * tapProgress.rippleScale)
+                                    }
+
+                                    Circle()
+                                        .fill(
+                                            LinearGradient(
+                                                colors: [Color.orange, Color.orange.opacity(0.85)],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                        )
+                                        .frame(width: 19, height: 19)
+                                        .scaleEffect(tapProgress.scale)
+                                        .offset(y: tapProgress.offset)
+                                        .shadow(color: Color.orange.opacity(tapProgress.offset == 0 ? 0.45 : 0.15), radius: tapProgress.offset == 0 ? 4 : 2, x: 0, y: tapProgress.offset == 0 ? 1 : 4)
+
+                                    Circle()
+                                        .fill(Color.white.opacity(0.8))
+                                        .frame(width: 5, height: 5)
+                                        .scaleEffect(tapProgress.scale)
+                                        .offset(y: tapProgress.offset)
+                                }
+
+                                Text("Tap")
+                                    .font(.system(size: 8, weight: .bold))
+                                    .foregroundColor(.orange)
+                            }
+                            .position(x: config.x, y: centerY)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private struct FingerConfig: Identifiable {
+        let id: Int
+        let x: CGFloat
+        let isResting: Bool
+    }
+
+    private func fingerConfigs(for type: GestureType, width: CGFloat) -> [FingerConfig] {
+        switch type {
+        case .tipTapRight2F:
+            return [
+                FingerConfig(id: 1, x: width * 0.36, isResting: true),
+                FingerConfig(id: 2, x: width * 0.64, isResting: false)
+            ]
+        case .tipTapLeft2F:
+            return [
+                FingerConfig(id: 1, x: width * 0.36, isResting: false),
+                FingerConfig(id: 2, x: width * 0.64, isResting: true)
+            ]
+        case .tipTapLeft3F:
+            return [
+                FingerConfig(id: 1, x: width * 0.28, isResting: false),
+                FingerConfig(id: 2, x: width * 0.50, isResting: true),
+                FingerConfig(id: 3, x: width * 0.72, isResting: true)
+            ]
+        case .tipTapRight3F:
+            return [
+                FingerConfig(id: 1, x: width * 0.28, isResting: true),
+                FingerConfig(id: 2, x: width * 0.50, isResting: true),
+                FingerConfig(id: 3, x: width * 0.72, isResting: false)
+            ]
+        case .fourFingerTap:
+            return [
+                FingerConfig(id: 1, x: width * 0.22, isResting: false),
+                FingerConfig(id: 2, x: width * 0.41, isResting: false),
+                FingerConfig(id: 3, x: width * 0.59, isResting: false),
+                FingerConfig(id: 4, x: width * 0.78, isResting: false)
+            ]
+        case .threeFingerTap:
+            return [
+                FingerConfig(id: 1, x: width * 0.28, isResting: false),
+                FingerConfig(id: 2, x: width * 0.50, isResting: false),
+                FingerConfig(id: 3, x: width * 0.72, isResting: false)
+            ]
+        }
+    }
+}
+

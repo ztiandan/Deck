@@ -141,6 +141,17 @@ public enum L10nKey: String, CaseIterable {
     case gestureThreeFingerTapDesc
     case gestureHapticFeedbackToggle
     case gestureHapticFeedbackDesc
+    case gestureIllustrationHeader
+    case gestureIllustrationBadge
+    case gestureDemoHoldFinger
+    case gestureDemoTapFinger
+    case gestureDemoSimultaneousTap
+    case gestureDemoTipTapRight2F
+    case gestureDemoTipTapLeft2F
+    case gestureDemoTipTapLeft3F
+    case gestureDemoTipTapRight3F
+    case gestureDemoFourFingerTap
+    case gestureDemoThreeFingerTap
 
     // Palette & App Switcher
     case paletteAccessibilityPrompt
@@ -330,6 +341,17 @@ public class LocalizationManager: ObservableObject {
         .gestureThreeFingerTapDesc: "Tap with 3 fingers simultaneously",
         .gestureHapticFeedbackToggle: "Haptic Feedback on Trackpad",
         .gestureHapticFeedbackDesc: "Provide subtle tactile click feedback when gesture triggers",
+        .gestureIllustrationHeader: "How it Works (Gesture Demonstration)",
+        .gestureIllustrationBadge: "Live Demo",
+        .gestureDemoHoldFinger: "Resting / Anchored",
+        .gestureDemoTapFinger: "Tap once",
+        .gestureDemoSimultaneousTap: "Tap simultaneously",
+        .gestureDemoTipTapRight2F: "Rest left finger on trackpad, tap right finger once",
+        .gestureDemoTipTapLeft2F: "Rest right finger on trackpad, tap left finger once",
+        .gestureDemoTipTapLeft3F: "Rest 2 fingers on trackpad, tap leftmost finger once",
+        .gestureDemoTipTapRight3F: "Rest 2 fingers on trackpad, tap rightmost finger once",
+        .gestureDemoFourFingerTap: "Tap simultaneously with 4 fingers on trackpad",
+        .gestureDemoThreeFingerTap: "Tap simultaneously with 3 fingers on trackpad",
 
         .paletteAccessibilityPrompt: "Accessibility permission is required to listen for global trigger key",
         .paletteAuthorize: "Authorize",
@@ -481,6 +503,17 @@ public class LocalizationManager: ObservableObject {
         .gestureThreeFingerTapDesc: "三根手指同时轻拍触控板",
         .gestureHapticFeedbackToggle: "触控板触觉反馈",
         .gestureHapticFeedbackDesc: "手势触发时通过触控板 Taptic 引擎提供物理敲击感",
+        .gestureIllustrationHeader: "操作手势动态示意",
+        .gestureIllustrationBadge: "动态演示",
+        .gestureDemoHoldFinger: "手指平放固定",
+        .gestureDemoTapFinger: "单指快速轻敲",
+        .gestureDemoSimultaneousTap: "多指同时轻点",
+        .gestureDemoTipTapRight2F: "左侧手指平放固定在触控板上，右侧手指快速轻敲一下",
+        .gestureDemoTipTapLeft2F: "右侧手指平放固定在触控板上，左侧手指快速轻敲一下",
+        .gestureDemoTipTapLeft3F: "右侧两指平放固定在触控板上，最左侧手指快速轻敲一下",
+        .gestureDemoTipTapRight3F: "左侧两指平放固定在触控板上，最右侧手指快速轻敲一下",
+        .gestureDemoFourFingerTap: "四根手指同时轻拍触控板一次（非滑动）",
+        .gestureDemoThreeFingerTap: "三根手指同时轻拍触控板一次（非滑动）",
 
         .paletteAccessibilityPrompt: "需要辅助功能权限以全局监听按键",
         .paletteAuthorize: "授权",
