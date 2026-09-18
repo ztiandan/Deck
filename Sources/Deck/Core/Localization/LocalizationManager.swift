@@ -16,7 +16,7 @@ public enum AppLanguage: String, CaseIterable, Identifiable, Codable {
     }
 }
 
-public enum L10nKey: String {
+public enum L10nKey: String, CaseIterable {
     // Brand & Navigation
     case appName
     case appSubtitle

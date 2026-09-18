@@ -59,7 +59,7 @@ public class HostsStore: ObservableObject {
     }
 
     /// 切换某个方案的开关状态
-    public func toggleProfile(id: UUID) {
+    public func toggleProfile(id: UUID, applyToSystem: Bool = true) {
         guard let index = config.profiles.firstIndex(where: { $0.id == id }) else { return }
         let currentTarget = config.profiles[index]
         let newEnabled = !currentTarget.isEnabled
@@ -78,7 +78,9 @@ public class HostsStore: ObservableObject {
 
         config.profiles[index].isEnabled = newEnabled
         save()
-        _ = HostsManager.shared.applyHostsToSystem()
+        if applyToSystem {
+            _ = HostsManager.shared.applyHostsToSystem()
+        }
     }
 
     /// 添加新方案
@@ -96,10 +98,12 @@ public class HostsStore: ObservableObject {
     }
 
     /// 删除方案
-    public func deleteProfile(id: UUID) {
+    public func deleteProfile(id: UUID, applyToSystem: Bool = true) {
         config.profiles.removeAll { $0.id == id }
         save()
-        _ = HostsManager.shared.applyHostsToSystem()
+        if applyToSystem {
+            _ = HostsManager.shared.applyHostsToSystem()
+        }
     }
 
     /// 更新方案
