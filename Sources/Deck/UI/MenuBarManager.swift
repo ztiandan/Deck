@@ -80,8 +80,8 @@ public class MenuBarManager: NSObject, NSMenuDelegate {
         editItem.target = self
         menu.addItem(editItem)
 
-        let viewItem = NSMenuItem(title: loc(.menuViewHosts), action: #selector(openViewHostsAction), keyEquivalent: "v")
-        viewItem.target = self
+        let viewItem = NSMenuItem(title: loc(.menuViewHosts), action: nil, keyEquivalent: "")
+        viewItem.submenu = HostsPreviewMenu()
         menu.addItem(viewItem)
 
         menu.addItem(NSMenuItem.separator())
@@ -130,8 +130,8 @@ public class MenuBarManager: NSObject, NSMenuDelegate {
         guard let id = sender.representedObject as? UUID else { return }
         if !HostsStore.shared.toggleProfile(id: id) {
             let alert = NSAlert()
-            alert.messageText = loc(.hostsApplyFailed)
-            alert.informativeText = HostsManager.shared.lastError ?? ""
+            alert.messageText = loc(HostsManager.shared.lastError == nil ? .configIssueTitle : .hostsApplyFailed)
+            alert.informativeText = HostsManager.shared.lastError ?? ConfigurationIssue.shared.message ?? ""
             alert.alertStyle = .warning
             alert.runModal()
         }
@@ -140,10 +140,6 @@ public class MenuBarManager: NSObject, NSMenuDelegate {
 
     @objc private func openEditHostsAction() {
         MainWindowController.shared.showWindow(tab: .editHosts)
-    }
-
-    @objc private func openViewHostsAction() {
-        MainWindowController.shared.showWindow(tab: .viewHosts)
     }
 
     @objc private func togglePaletteAction() {

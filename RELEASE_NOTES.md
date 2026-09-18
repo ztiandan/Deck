@@ -1,43 +1,25 @@
-## Deck v1.1.3
+## Deck v1.1.4
 
-This release improves reliability across trackpad gestures, the app switcher, and Hosts management, and adds animated gesture demonstrations.
+### Hosts preview in the menu bar
 
-### Trackpad gestures
+- Hover over **View Hosts** to open a scrollable preview of the current `/etc/hosts`, with a Copy action.
+- Each opening reads the system file again, including changes made outside Deck.
+- Long lines and large previews support horizontal and vertical scrolling. Read failures clear stale content and disable copying.
+- Removed the **Active Hosts** page from the main window; profile editing remains available under **Profiles**.
 
-- Added animated instructions that distinguish resting fingers, tapping, and lifting.
-- Improved TipTap and simultaneous three/four-finger tap recognition, including swipe rejection, staggered releases, repeated taps, and malformed-frame handling.
-- Editing a shortcut now executes the displayed shortcut instead of a stale saved key code.
-- Enabling a new rule for the same gesture automatically disables conflicting rules.
-- Improved settings layout and shortcut preset wrapping.
-- Three-finger TipTap uses two resting fingers and one tapping finger; see the in-app demonstration for the supported gesture.
+### Fixes and polish
 
-### Hosts management
-
-- Updates preserve the existing hosts file's ownership and permissions, verify the written contents, and attempt to restore the original content on write failure.
-- One-time authorization grants write access to the current account. Unchanged content does not require another write or authorization.
-- Applying an inactive profile enables it; failed system updates do not commit the proposed profile selection.
-- Drafts survive switching profiles and restarting the app, and are retained if saving an applied profile fails.
-- Added resolution checks that distinguish file success from DNS overrides, including valid IPv4/IPv6 combinations.
-- Fixed the global group-exclusivity switch and hover previews. Folders can be collapsed or removed while retaining their profiles.
-- Example profiles are disabled for new installations.
-
-### App switcher and settings
-
-- Fixed build errors in global hotkey handling and service-status localization.
-- Added invalid/duplicate key validation and fixed modified Space shortcuts accidentally triggering the previous app.
-- Explicit app identities no longer fall back to similarly named running applications.
-- Improved permission monitoring, palette dismissal, configuration recovery, and window sizing.
+- Removed the bright vertical divider between the sidebar and content area for a cleaner dark appearance.
+- Hosts profile switching now reports a configuration-save failure instead of returning success.
+- Resetting app mappings preserves the selected theme, trigger key, and palette position.
 
 ### Validation
 
-- 63 automated tests cover gesture recognition, action events, key matching, Hosts writes and failure recovery, persistence, and English/Chinese localization.
-- The release workflow runs tests before building and publishing, and the build script verifies the application signature.
-- Real trackpad interaction, multi-display/full-screen shortcuts, fresh permission prompts, and older macOS versions still require environment-specific verification. See [QA_REPORT.md](https://github.com/ztiandan/Deck/blob/v1.1.3/QA_REPORT.md) for scope and limitations.
+- 70 automated tests cover the existing features plus preview refresh, empty/unreadable files, scrolling, persistence errors, and mapping reset behavior.
+- Release builds verify the application signature. Main-window changes were checked in the native app; real pointer-hover behavior remains an environment-specific manual check.
 
 ### Installation
 
 1. Download `Deck-macOS.zip` below and unzip it.
-2. Quit the previous version of Deck, then replace `Deck.app` in `/Applications`.
-3. Open Deck and check Accessibility permission in System Settings if prompted.
-
-Existing configurations in `~/Library/Application Support/Deck` are retained.
+2. Quit Deck, then replace `Deck.app` in `/Applications`.
+3. Open Deck. Existing profiles, mappings, gestures, and preferences are retained.

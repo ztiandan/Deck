@@ -203,6 +203,37 @@ final class AuditRegressionTests: IsolatedDeckTestCase {
         XCTAssertEqual(store.config.profiles.filter { $0.groupId == group.id && $0.isEnabled }.map(\.id), [second.id])
     }
 
+    func testToggleReportsPersistenceFailureEvenAfterSystemWriteSucceeds() throws {
+        let url = testDirectory.appendingPathComponent("hosts.json")
+        let store = HostsStore(fileURL: url)
+        let profile = store.addProfile(title: "Toggle", content: "127.0.0.1 toggle.test")
+        let system = testDirectory.appendingPathComponent("system-hosts")
+        try Data().write(to: system)
+        try FileManager.default.removeItem(at: url)
+        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: false)
+        let manager = HostsManager(hostsURL: system, authorizeWrite: { XCTFail() }, refreshDNS: {})
+        XCTAssertFalse(store.toggleProfile(id: profile.id, manager: manager))
+        XCTAssertTrue(manager.isConfigApplied(store.config))
+        XCTAssertNotNil(ConfigurationIssue.shared.message)
+    }
+
+    func testResetMappingsPreservesThemeTriggerAndPanelPosition() {
+        let url = testDirectory.appendingPathComponent("palette.json")
+        let store = ConfigStore(fileURL: url)
+        store.config.themeMode = .dark
+        store.config.triggerKeyCode = 80
+        store.config.triggerKeyName = "F19"
+        store.config.showAtCursor = true
+        store.config.items = []
+        store.resetMappingsToDefault()
+        let reloaded = ConfigStore(fileURL: url)
+        XCTAssertFalse(reloaded.config.items.isEmpty)
+        XCTAssertEqual(reloaded.config.themeMode, .dark)
+        XCTAssertEqual(reloaded.config.triggerKeyCode, 80)
+        XCTAssertEqual(reloaded.config.triggerKeyName, "F19")
+        XCTAssertTrue(reloaded.config.showAtCursor)
+    }
+
     func testConfigurationCreatesMissingParentAndRoundTrips() throws {
         let url = testDirectory.appendingPathComponent("new/subdirectory/config.json")
         let store = ConfigStore(fileURL: url)

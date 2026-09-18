@@ -5,7 +5,6 @@ public enum DeckTab: String, CaseIterable, Identifiable {
     case appSwitcher = "appSwitcher"
     case trackpad = "trackpad"
     case editHosts = "editHosts"
-    case viewHosts = "viewHosts"
     case general = "general"
 
     public var id: String { self.rawValue }
@@ -15,7 +14,6 @@ public enum DeckTab: String, CaseIterable, Identifiable {
         case .appSwitcher: return loc(.tabAppSwitcher)
         case .trackpad: return loc(.tabTrackpad)
         case .editHosts: return loc(.tabEditHosts)
-        case .viewHosts: return loc(.tabViewHosts)
         case .general: return loc(.tabGeneral)
         }
     }
@@ -25,7 +23,6 @@ public enum DeckTab: String, CaseIterable, Identifiable {
         case .appSwitcher: return "square.grid.2x2.fill"
         case .trackpad: return "hand.tap.fill"
         case .editHosts: return "pencil.and.outline"
-        case .viewHosts: return "eye.fill"
         case .general: return "gearshape.fill"
         }
     }
@@ -122,14 +119,6 @@ public struct MainContainerView: View {
                                 action: { selectedTab = .editHosts }
                             )
 
-                            SidebarItemButton(
-                                title: loc(.navActiveHosts),
-                                icon: "eye.fill",
-                                isSelected: selectedTab == .viewHosts,
-                                badgeText: hostsManager.isConfigApplied(hostsStore.config) ? "\(hostsStore.config.profiles.filter { $0.isEnabled }.count)" : "!",
-                                badgeColor: hostsManager.isConfigApplied(hostsStore.config) ? .green : .orange,
-                                action: { selectedTab = .viewHosts }
-                            )
                         }
 
                         // 板块四：系统偏好
@@ -164,7 +153,7 @@ public struct MainContainerView: View {
                         .font(.system(size: 10.5, weight: .medium))
                         .foregroundColor(.secondary)
                     Spacer()
-                    Text("v" + (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.1.3"))
+                    Text("v" + (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.1.4"))
                         .font(.system(size: 10, weight: .semibold, design: .monospaced))
                         .foregroundColor(.secondary.opacity(0.7))
                 }
@@ -175,12 +164,6 @@ public struct MainContainerView: View {
             .frame(width: 220)
             .background(DeckTheme.sidebarBackground)
 
-            // 侧栏与主画布间的清晰微质感分割线
-            Rectangle()
-                .fill(DeckTheme.dividerColor)
-                .frame(width: 1)
-                .ignoresSafeArea()
-
             // 右侧主工作区
             Group {
                 switch selectedTab {
@@ -190,8 +173,6 @@ public struct MainContainerView: View {
                     TrackpadGesturesView()
                 case .editHosts:
                     EditHostsView()
-                case .viewHosts:
-                    ViewHostsView()
                 case .general:
                     GeneralHostsView()
                 }

@@ -176,7 +176,7 @@ public struct PaletteSettingsView: View {
                             Spacer()
 
                             Button(loc(.gestureReset)) {
-                                configStore.resetToDefault()
+                                configStore.resetMappingsToDefault()
                             }
                             .controlSize(.small)
 

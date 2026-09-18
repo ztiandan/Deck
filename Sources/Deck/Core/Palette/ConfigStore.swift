@@ -138,8 +138,8 @@ public class ConfigStore: ObservableObject {
         }
     }
 
-    public func resetToDefault() {
-        self.config = .default
+    public func resetMappingsToDefault() {
+        config.items = AppConfig.default.items
         save()
     }
 }

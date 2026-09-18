@@ -4,6 +4,23 @@ All notable changes to **Deck** will be documented in this file.
 
 ---
 
+## [v1.1.4] - 2026-09-18
+
+### Changed
+- View Hosts now opens a native hover submenu showing the current system file, with scrolling and copying.
+- Removed the Active Hosts page from the main window.
+- Removed the bright sidebar divider, using background colors to separate the layout.
+
+### Fixed
+- Refresh Hosts previews on every opening and clear stale content after read errors.
+- Report Hosts configuration-save failures when switching profiles.
+- Preserve theme, trigger key, and palette position when resetting app mappings.
+
+### Validation
+- Expanded regression coverage to 70 tests, including preview refresh, read failures, long content, persistence errors, and mapping reset scope.
+
+---
+
 ## [v1.1.3] - 2026-09-18
 
 ### Added

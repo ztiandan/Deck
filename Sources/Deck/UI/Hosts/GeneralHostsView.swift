@@ -163,7 +163,7 @@ public struct GeneralHostsView: View {
                 HStack(spacing: 6) {
                     Text(loc(.prefVersionLabel))
                         .foregroundColor(.secondary)
-                    Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.1.3")
+                    Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.1.4")
                         .font(.system(size: 11, weight: .semibold, design: .monospaced))
                         .foregroundColor(.primary)
                 }

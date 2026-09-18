@@ -103,8 +103,7 @@ public class HostsStore: ObservableObject {
         Self.setEnabled(!profile.isEnabled, id: id, in: &proposed)
         if applyToSystem && !manager.apply(config: proposed) { return false }
         config = proposed
-        save()
-        return true
+        return save()
     }
 
     @discardableResult

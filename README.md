@@ -32,7 +32,7 @@ Directly bridges to macOS hardware touch frame streams with sub-millisecond late
 - **Instant Status Bar Switching**: Switch between `Default`, `Development`, `Testing`, and `Production` profiles with a single click.
 - **Folders & Mutually Exclusive Groups**: Organize profiles into logical folders with optional mutual exclusion (allowing only one profile active per group).
 - **🚀 Passwordless Writing Mode**: One-time authorization grants your current account write access to `/etc/hosts`. Updates preserve file ownership and permissions, then read back the file to verify the result.
-- **Native Editor & System Inspector**: Built-in monospaced editor with persistent drafts, adaptive Light & Dark themes, `/etc/hosts` overview refreshed on activation, and silent DNS cache flushing through `dscacheutil`.
+- **Native Editor & Hosts Preview**: Built-in monospaced editor with persistent drafts and adaptive Light & Dark themes. Hover over **View Hosts** in the menu bar to read the current `/etc/hosts` in a scrollable preview, with a Copy action. Each opening reads the system file again. DNS cache flushing uses `dscacheutil`.
 
 ### 3. ⚡️ Instant HUD App Switcher & Palette
 - **Global Single-Key Summoning**: Trigger a translucent, native HUD palette anywhere on screen with a single key (e.g., `F18`, easily mapped from `CapsLock` via Karabiner).

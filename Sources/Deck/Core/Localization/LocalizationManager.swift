@@ -22,7 +22,6 @@ public enum L10nKey: String, CaseIterable {
     case appSubtitle
     case navHostsManagement
     case navProfiles
-    case navActiveHosts
     case navQuickSwitch
     case navPaletteMappings
     case navTouchGestures
@@ -38,7 +37,6 @@ public enum L10nKey: String, CaseIterable {
 
     // Tab Titles
     case tabEditHosts
-    case tabViewHosts
     case tabAppSwitcher
     case tabTrackpad
     case tabGeneral
@@ -258,7 +256,6 @@ public class LocalizationManager: ObservableObject {
         .appSubtitle: "Speed Console",
         .navHostsManagement: "HOSTS MANAGEMENT",
         .navProfiles: "Profiles",
-        .navActiveHosts: "Active Hosts",
         .navQuickSwitch: "QUICK SWITCH",
         .navPaletteMappings: "Palette Mappings",
         .navTouchGestures: "TOUCH GESTURES",
@@ -273,14 +270,13 @@ public class LocalizationManager: ObservableObject {
         .hostsDeleteFolder: "Remove folder and keep profiles",
 
         .tabEditHosts: "Edit Hosts Profiles",
-        .tabViewHosts: "Active Hosts Overview",
         .tabAppSwitcher: "App Switcher & Palette",
         .tabTrackpad: "Trackpad Gestures",
         .tabGeneral: "General Preferences",
 
         .menuTooltip: "Deck: Trackpad Gestures / Hosts / App Switcher",
         .menuEditHosts: "Edit Hosts...",
-        .menuViewHosts: "View Hosts...",
+        .menuViewHosts: "View Hosts",
         .menuTogglePalette: "Trigger App Palette",
         .menuTouchGestures: "Trackpad Gestures",
         .menuGesturesActive: "✓ Gestures Active (Click to Pause)",
@@ -316,7 +312,7 @@ public class LocalizationManager: ObservableObject {
         .hostsRestoreFailed: "Writing hosts and restoring the previous content failed. Check /etc/hosts before continuing.",
         .hostsAuthorizationPrompt: "Allow your current account to write /etc/hosts. Future changes from this account will not need an administrator password.",
         .hostsAuthorizationCancelled: "Authorization cancelled. Changes have not been applied.",
-        .hostsReadFailed: "Could not read /etc/hosts. This view only shows the actual system file.",
+        .hostsReadFailed: "Could not read /etc/hosts. The preview only shows the actual system file.",
         .hostsCheckResolution: "Check resolution",
         .hostsCheckingResolution: "Checking the first custom domain…",
         .hostsResolutionMatches: "%@: expected %@; resolved %@. Matches.",
@@ -337,7 +333,7 @@ public class LocalizationManager: ObservableObject {
         .hostsFolderName: "Folder Name:",
         .hostsCancel: "Cancel",
         .hostsCreate: "Create",
-        .hostsSystemActiveTitle: "Active /etc/hosts",
+        .hostsSystemActiveTitle: "Current /etc/hosts",
         .hostsRefresh: "Refresh",
         .hostsCopy: "Copy",
         .hostsCopied: "Copied",
@@ -451,7 +447,6 @@ public class LocalizationManager: ObservableObject {
         .appSubtitle: "极速控制台",
         .navHostsManagement: "HOSTS 管理",
         .navProfiles: "方案列表",
-        .navActiveHosts: "生效 Hosts",
         .navQuickSwitch: "快捷切换",
         .navPaletteMappings: "快捷映射",
         .navTouchGestures: "触控手势",
@@ -466,14 +461,13 @@ public class LocalizationManager: ObservableObject {
         .hostsDeleteFolder: "删除文件夹并保留方案",
 
         .tabEditHosts: "编辑 Hosts 方案",
-        .tabViewHosts: "生效 Hosts 全览",
         .tabAppSwitcher: "应用切换与调色板",
         .tabTrackpad: "触控板手势增强",
         .tabGeneral: "通用偏好设置",
 
         .menuTooltip: "Deck: 触控手势 / Hosts / 应用切换",
         .menuEditHosts: "编辑 Hosts...",
-        .menuViewHosts: "查看生效 Hosts...",
+        .menuViewHosts: "查看当前 Hosts",
         .menuTogglePalette: "呼出应用调色板",
         .menuTouchGestures: "触控手势",
         .menuGesturesActive: "✓ 手势功能生效中 (点击暂停)",
@@ -509,7 +503,7 @@ public class LocalizationManager: ObservableObject {
         .hostsRestoreFailed: "写入失败，且未能恢复原内容，请先检查 /etc/hosts。",
         .hostsAuthorizationPrompt: "允许当前账户写入 /etc/hosts。授权后，此账户后续修改无需再输入管理员密码。",
         .hostsAuthorizationCancelled: "已取消授权，修改尚未应用。",
-        .hostsReadFailed: "无法读取 /etc/hosts。此页面仅展示真实系统文件。",
+        .hostsReadFailed: "无法读取 /etc/hosts。预览仅展示真实系统文件。",
         .hostsCheckResolution: "检查解析",
         .hostsCheckingResolution: "正在检查首个自定义域名…",
         .hostsResolutionMatches: "%@：预期 %@；实际 %@。解析匹配。",
@@ -530,7 +524,7 @@ public class LocalizationManager: ObservableObject {
         .hostsFolderName: "分组名称:",
         .hostsCancel: "取消",
         .hostsCreate: "创建",
-        .hostsSystemActiveTitle: "系统生效 Hosts",
+        .hostsSystemActiveTitle: "当前系统 Hosts",
         .hostsRefresh: "刷新",
         .hostsCopy: "复制",
         .hostsCopied: "已复制",
