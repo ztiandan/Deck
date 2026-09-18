@@ -10,10 +10,21 @@ public class GestureStore: ObservableObject {
         }
     }
     @Published public var isGlobalEnabled: Bool = true
+    @Published public var isHapticFeedbackEnabled: Bool {
+        didSet {
+            UserDefaults.standard.set(isHapticFeedbackEnabled, forKey: "deck_gesture_haptic_feedback")
+        }
+    }
 
     private let fileURL: URL
 
     private init() {
+        if UserDefaults.standard.object(forKey: "deck_gesture_haptic_feedback") != nil {
+            self.isHapticFeedbackEnabled = UserDefaults.standard.bool(forKey: "deck_gesture_haptic_feedback")
+        } else {
+            self.isHapticFeedbackEnabled = true
+        }
+
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
         let appDir = appSupport.appendingPathComponent("Deck", isDirectory: true)
         try? FileManager.default.createDirectory(at: appDir, withIntermediateDirectories: true)

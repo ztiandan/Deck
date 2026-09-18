@@ -139,6 +139,8 @@ public enum L10nKey: String {
     case gestureTipTapRight3FDesc
     case gestureFourFingerTapDesc
     case gestureThreeFingerTapDesc
+    case gestureHapticFeedbackToggle
+    case gestureHapticFeedbackDesc
 
     // Palette & App Switcher
     case paletteAccessibilityPrompt
@@ -314,18 +316,20 @@ public class LocalizationManager: ObservableObject {
         .gestureActionShortcut: "Keyboard Shortcut",
         .gestureActionCmdClick: "CMD(⌘) + Click",
         .gestureActionMiddleClick: "Middle Click",
-        .gestureTipTapRight2F: "TipTap Right (2 Fingers Fix)",
-        .gestureTipTapLeft2F: "TipTap Left (2 Fingers Fix)",
-        .gestureTipTapLeft3F: "TipTap Left (3 Fingers Fix)",
-        .gestureTipTapRight3F: "TipTap Right (3 Fingers Fix)",
-        .gestureFourFingerTap: "4 Finger Tap",
-        .gestureThreeFingerTap: "3 Finger Tap",
+        .gestureTipTapRight2F: "TipTap Right (2 Fingers)",
+        .gestureTipTapLeft2F: "TipTap Left (2 Fingers)",
+        .gestureTipTapLeft3F: "TipTap Left (3 Fingers)",
+        .gestureTipTapRight3F: "TipTap Right (3 Fingers)",
+        .gestureFourFingerTap: "4-Finger Tap",
+        .gestureThreeFingerTap: "3-Finger Tap",
         .gestureTipTapRight2FDesc: "Hold 1 finger left, tap 1 finger right (e.g. Close Tab)",
         .gestureTipTapLeft2FDesc: "Hold 1 finger right, tap 1 finger left (e.g. Reload Page)",
         .gestureTipTapLeft3FDesc: "Hold 2 fingers, tap leftmost finger (Previous Tab/Desktop)",
         .gestureTipTapRight3FDesc: "Hold 2 fingers, tap rightmost finger (Next Tab/Desktop)",
         .gestureFourFingerTapDesc: "Tap with 4 fingers simultaneously (Open link in background)",
         .gestureThreeFingerTapDesc: "Tap with 3 fingers simultaneously",
+        .gestureHapticFeedbackToggle: "Haptic Feedback on Trackpad",
+        .gestureHapticFeedbackDesc: "Provide subtle tactile click feedback when gesture triggers",
 
         .paletteAccessibilityPrompt: "Accessibility permission is required to listen for global trigger key",
         .paletteAuthorize: "Authorize",
@@ -463,10 +467,10 @@ public class LocalizationManager: ObservableObject {
         .gestureActionShortcut: "键盘快捷键",
         .gestureActionCmdClick: "CMD(⌘) + 点击",
         .gestureActionMiddleClick: "鼠标中键",
-        .gestureTipTapRight2F: "TipTap Right (双指固定，右敲)",
-        .gestureTipTapLeft2F: "TipTap Left (双指固定，左敲)",
-        .gestureTipTapLeft3F: "TipTap Left (三指固定，最左敲)",
-        .gestureTipTapRight3F: "TipTap Right (三指固定，最右敲)",
+        .gestureTipTapRight2F: "TipTap Right (双指·右敲)",
+        .gestureTipTapLeft2F: "TipTap Left (双指·左敲)",
+        .gestureTipTapLeft3F: "TipTap Left (三指·左敲)",
+        .gestureTipTapRight3F: "TipTap Right (三指·右敲)",
         .gestureFourFingerTap: "四指同时轻点",
         .gestureThreeFingerTap: "三指同时轻点",
         .gestureTipTapRight2FDesc: "两指搭板，左指固定，右指轻敲（如关闭标签）",
@@ -475,6 +479,8 @@ public class LocalizationManager: ObservableObject {
         .gestureTipTapRight3FDesc: "三指搭板，最右侧手指轻敲（后一切换标签/桌面）",
         .gestureFourFingerTapDesc: "四指同时轻点触控板（后台新标签打开网页）",
         .gestureThreeFingerTapDesc: "三根手指同时轻拍触控板",
+        .gestureHapticFeedbackToggle: "触控板触觉反馈",
+        .gestureHapticFeedbackDesc: "手势触发时通过触控板 Taptic 引擎提供物理敲击感",
 
         .paletteAccessibilityPrompt: "需要辅助功能权限以全局监听按键",
         .paletteAuthorize: "授权",

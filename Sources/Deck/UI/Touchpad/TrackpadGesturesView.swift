@@ -84,7 +84,7 @@ public struct TrackpadGesturesView: View {
                 .padding(.vertical, 6)
                 .background(DeckTheme.barBackground)
             }
-            .frame(minWidth: 220, idealWidth: 240, maxWidth: 280)
+            .frame(minWidth: 240, idealWidth: 260, maxWidth: 300)
 
             // 右侧：动作与配置区
             if let index = gestureStore.gestures.firstIndex(where: { $0.id == selectedGestureId }) {
@@ -138,11 +138,11 @@ struct GestureListRow: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            // 状态指示条
-            Rectangle()
-                .fill(gesture.isEnabled ? Color.green : Color.clear)
-                .frame(width: 3)
-                .cornerRadius(1.5)
+            // 状态指示条（启用绿色，触发时高亮橙色）
+            RoundedRectangle(cornerRadius: 1.5)
+                .fill(isJustTriggered ? Color.orange : (gesture.isEnabled ? Color.green : Color.clear))
+                .frame(width: 3, height: 32)
+                .animation(.easeInOut(duration: 0.2), value: isJustTriggered)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(gesture.gestureType.displayName)
@@ -150,12 +150,30 @@ struct GestureListRow: View {
                     .foregroundColor(isSelected ? .white : .primary)
                     .lineLimit(1)
 
-                Text(gesture.shortcutDisplay)
-                    .font(.system(size: 10.5, weight: .medium, design: .monospaced))
-                    .foregroundColor(isSelected ? .white.opacity(0.85) : .secondary)
+                if !gesture.notes.isEmpty {
+                    Text(gesture.notes)
+                        .font(.system(size: 10))
+                        .foregroundColor(isSelected ? .white.opacity(0.8) : .secondary)
+                        .lineLimit(1)
+                }
             }
 
             Spacer()
+
+            // 快捷键键帽样式
+            Text(gesture.shortcutDisplay)
+                .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                .foregroundColor(isSelected ? .white : .secondary)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2.5)
+                .background(
+                    RoundedRectangle(cornerRadius: 4, style: .continuous)
+                        .fill(isSelected ? Color.white.opacity(0.2) : Color.primary.opacity(0.06))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 4, style: .continuous)
+                        .stroke(isSelected ? Color.white.opacity(0.3) : DeckTheme.borderColor, lineWidth: 0.5)
+                )
 
             if isJustTriggered {
                 Circle()
@@ -168,7 +186,7 @@ struct GestureListRow: View {
         .contentShape(Rectangle())
         .background(
             RoundedRectangle(cornerRadius: 6, style: .continuous)
-                .fill(isSelected ? DeckTheme.accent : Color.clear)
+                .fill(isSelected ? DeckTheme.accent : (isJustTriggered ? Color.orange.opacity(0.15) : Color.clear))
         )
         .onTapGesture {
             onSelect()
@@ -179,6 +197,8 @@ struct GestureListRow: View {
 /// 手势配置详情
 struct GestureDetailView: View {
     @Binding var gesture: TouchpadGesture
+    @ObservedObject var gestureStore = GestureStore.shared
+    @ObservedObject var touchpadManager = TouchpadManager.shared
     @ObservedObject var l10n = LocalizationManager.shared
 
     var body: some View {
@@ -217,7 +237,7 @@ struct GestureDetailView: View {
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .stroke(Color.primary.opacity(0.06), lineWidth: 1)
+                            .stroke(touchpadManager.lastTriggeredGesture == gesture.gestureType ? Color.orange : Color.primary.opacity(0.06), lineWidth: touchpadManager.lastTriggeredGesture == gesture.gestureType ? 1.5 : 1)
                     )
                     .shadow(color: Color.black.opacity(0.03), radius: 4, x: 0, y: 1)
                 }
@@ -296,6 +316,11 @@ struct GestureDetailView: View {
                                         gesture.keyCode = 15
                                         gesture.modifiers = ["cmd"]
                                     }
+                                    PresetButton(title: "⌘ T") {
+                                        gesture.shortcutDisplay = "⌘ T"
+                                        gesture.keyCode = 17
+                                        gesture.modifiers = ["cmd"]
+                                    }
                                     PresetButton(title: "^ ←") {
                                         gesture.shortcutDisplay = "^ ←"
                                         gesture.keyCode = 123
@@ -306,10 +331,15 @@ struct GestureDetailView: View {
                                         gesture.keyCode = 124
                                         gesture.modifiers = ["ctrl"]
                                     }
-                                    PresetButton(title: "^ ⇧ →") {
-                                        gesture.shortcutDisplay = "^ ⇧ →"
-                                        gesture.keyCode = 124
-                                        gesture.modifiers = ["ctrl", "shift"]
+                                    PresetButton(title: "⌘ ⇧ [") {
+                                        gesture.shortcutDisplay = "⌘ ⇧ ["
+                                        gesture.keyCode = 33
+                                        gesture.modifiers = ["cmd", "shift"]
+                                    }
+                                    PresetButton(title: "⌘ ⇧ ]") {
+                                        gesture.shortcutDisplay = "⌘ ⇧ ]"
+                                        gesture.keyCode = 30
+                                        gesture.modifiers = ["cmd", "shift"]
                                     }
                                 }
                             }
@@ -329,6 +359,27 @@ struct GestureDetailView: View {
                     }
                 }
                 .padding(16)
+                .background(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(DeckTheme.cardBackground)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .stroke(DeckTheme.borderColor, lineWidth: 1)
+                )
+                .shadow(color: DeckTheme.cardShadow, radius: 4, x: 0, y: 1)
+
+                // 3. 触控板触觉反馈设置
+                VStack(alignment: .leading, spacing: 6) {
+                    Toggle(loc(.gestureHapticFeedbackToggle), isOn: $gestureStore.isHapticFeedbackEnabled)
+                        .font(.system(size: 12, weight: .semibold))
+
+                    Text(loc(.gestureHapticFeedbackDesc))
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                }
+                .padding(14)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .background(
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
                         .fill(DeckTheme.cardBackground)

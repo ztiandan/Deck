@@ -81,9 +81,17 @@ public class ActionExecutor {
     public func simulateCmdClick() {
         let mouseLoc = NSEvent.mouseLocation
         let primaryHeight = NSScreen.screens.first?.frame.height ?? 1080
-        let point = CGPoint(x: mouseLoc.x, y: primaryHeight - mouseLoc.y)
+        let fallbackPoint = CGPoint(x: mouseLoc.x, y: primaryHeight - mouseLoc.y)
+        let point = CGEvent(source: nil)?.location ?? fallbackPoint
 
         let src = CGEventSource(stateID: .combinedSessionState)
+
+        // 模拟 Command 键按下以确保浏览器（Chrome/Safari等）百分之百识别修饰键
+        let cmdDown = CGEvent(keyboardEventSource: src, virtualKey: 55, keyDown: true)
+        let cmdUp = CGEvent(keyboardEventSource: src, virtualKey: 55, keyDown: false)
+        cmdDown?.flags = .maskCommand
+        cmdUp?.flags = []
+
         guard let down = CGEvent(mouseEventSource: src, mouseType: .leftMouseDown, mouseCursorPosition: point, mouseButton: .left),
               let up = CGEvent(mouseEventSource: src, mouseType: .leftMouseUp, mouseCursorPosition: point, mouseButton: .left) else {
             return
@@ -92,16 +100,26 @@ public class ActionExecutor {
         down.flags = .maskCommand
         up.flags = .maskCommand
 
+        down.setIntegerValueField(.mouseEventButtonNumber, value: 0)
+        up.setIntegerValueField(.mouseEventButtonNumber, value: 0)
+        down.setIntegerValueField(.mouseEventClickState, value: 1)
+        up.setIntegerValueField(.mouseEventClickState, value: 1)
+
+        cmdDown?.post(tap: .cghidEventTap)
+        usleep(5000)
         down.post(tap: .cghidEventTap)
-        usleep(20000)
+        usleep(25000)
         up.post(tap: .cghidEventTap)
+        usleep(5000)
+        cmdUp?.post(tap: .cghidEventTap)
     }
 
     /// 模拟鼠标中键点击
     public func simulateMiddleClick() {
         let mouseLoc = NSEvent.mouseLocation
         let primaryHeight = NSScreen.screens.first?.frame.height ?? 1080
-        let point = CGPoint(x: mouseLoc.x, y: primaryHeight - mouseLoc.y)
+        let fallbackPoint = CGPoint(x: mouseLoc.x, y: primaryHeight - mouseLoc.y)
+        let point = CGEvent(source: nil)?.location ?? fallbackPoint
 
         let src = CGEventSource(stateID: .combinedSessionState)
         guard let down = CGEvent(mouseEventSource: src, mouseType: .otherMouseDown, mouseCursorPosition: point, mouseButton: .center),
@@ -111,9 +129,11 @@ public class ActionExecutor {
 
         down.setIntegerValueField(.mouseEventButtonNumber, value: 2)
         up.setIntegerValueField(.mouseEventButtonNumber, value: 2)
+        down.setIntegerValueField(.mouseEventClickState, value: 1)
+        up.setIntegerValueField(.mouseEventClickState, value: 1)
 
         down.post(tap: .cghidEventTap)
-        usleep(20000)
+        usleep(25000)
         up.post(tap: .cghidEventTap)
     }
 }
