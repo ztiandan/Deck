@@ -47,6 +47,17 @@ public struct PaletteSettingsView: View {
                     Text(loc(.paletteAccessibilityPrompt))
                         .font(.system(size: 12, weight: .medium))
                     Spacer()
+
+                    Button(action: {
+                        hotKeyManager.checkAccessibility(prompt: false)
+                    }) {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.system(size: 11))
+                    }
+                    .controlSize(.small)
+                    .buttonStyle(.bordered)
+                    .help("重新检测权限状态")
+
                     Button(loc(.paletteAuthorize)) {
                         hotKeyManager.openAccessibilityPreferences()
                     }
@@ -221,6 +232,15 @@ public struct PaletteSettingsView: View {
                 editingItem = nil
             }
         }
+        .onAppear {
+            hotKeyManager.checkAccessibility(prompt: false)
+            if !hotKeyManager.isAccessibilityGranted {
+                hotKeyManager.startPollingAccessibility()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            hotKeyManager.checkAccessibility(prompt: false)
+        }
     }
 }
 
@@ -234,7 +254,7 @@ struct PaletteItemCard: View {
     var body: some View {
         HStack(spacing: 12) {
             // 实体微浮雕键帽
-            Text(item.key)
+            Text(item.displayKey)
                 .font(.system(size: 13, weight: .bold, design: .monospaced))
                 .foregroundColor(.primary)
                 .frame(minWidth: 28, minHeight: 26)
@@ -337,14 +357,32 @@ struct ItemEditSheet: View {
         _bundleId = State(initialValue: item?.bundleIdentifier ?? "")
     }
 
+    private var isKeyValid: Bool {
+        let trimmed = key.trimmingCharacters(in: .whitespaces)
+        return !trimmed.isEmpty || key == " " || trimmed.lowercased() == "space"
+    }
+
     var body: some View {
         VStack(spacing: 16) {
             Text(initialItem == nil ? loc(.paletteAddMappingTitle) : loc(.paletteEditMappingTitle))
                 .font(.headline)
 
             Form {
-                TextField(loc(.paletteKeyFieldPlaceholder), text: $key)
-                    .frame(width: 300)
+                HStack(spacing: 8) {
+                    TextField(loc(.paletteKeyFieldPlaceholder), text: $key)
+                        .frame(width: 220)
+                        .onChange(of: key) { newKey in
+                            if newKey == " " {
+                                key = "Space"
+                            }
+                        }
+
+                    Button(action: { key = "Space" }) {
+                        Text("Space (空格)")
+                            .font(.system(size: 11))
+                    }
+                    .controlSize(.small)
+                }
 
                 Picker(loc(.paletteActionCol) + ":", selection: $isLastApp) {
                     Text(loc(.paletteActionActivateApp)).tag(false)
@@ -373,7 +411,14 @@ struct ItemEditSheet: View {
                     .keyboardShortcut(.cancelAction)
 
                 Button(loc(.paletteSaveButton)) {
-                    let cleanedKey = key.trimmingCharacters(in: .whitespaces)
+                    let trimmed = key.trimmingCharacters(in: .whitespaces)
+                    let cleanedKey: String
+                    if key == " " || trimmed.lowercased() == "space" || trimmed == "␣" || trimmed == "空格" {
+                        cleanedKey = "Space"
+                    } else {
+                        cleanedKey = trimmed
+                    }
+
                     let name = displayName.isEmpty ? "Activate Application" : displayName
                     let item = PaletteItem(
                         id: initialItem?.id ?? UUID(),
@@ -386,7 +431,7 @@ struct ItemEditSheet: View {
                     onSave(item)
                 }
                 .keyboardShortcut(.defaultAction)
-                .disabled(key.trimmingCharacters(in: .whitespaces).isEmpty)
+                .disabled(!isKeyValid)
             }
         }
         .padding(20)

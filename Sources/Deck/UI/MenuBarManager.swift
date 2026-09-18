@@ -10,9 +10,7 @@ public class MenuBarManager: NSObject, NSMenuDelegate {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 
         if let button = statusItem?.button {
-            let image = NSImage(systemSymbolName: "bolt.horizontal.circle.fill", accessibilityDescription: "Deck")
-            image?.isTemplate = true
-            button.image = image
+            button.image = Self.createDeckMenuBarIcon()
             button.toolTip = loc(.menuTooltip)
         }
 
@@ -159,5 +157,33 @@ public class MenuBarManager: NSObject, NSMenuDelegate {
 
     @objc private func quitAction() {
         NSApplication.shared.terminate(nil)
+    }
+
+    /// 创建契合 Deck 品牌标志的原生矢量菜单栏模版图标 | )
+    public static func createDeckMenuBarIcon() -> NSImage {
+        let size = NSSize(width: 18, height: 18)
+        let image = NSImage(size: size, flipped: false) { rect in
+            // 1. 左侧垂直圆角矩形条 |
+            let barRect = NSRect(x: 2.8, y: 2.5, width: 2.4, height: 13.0)
+            let barPath = NSBezierPath(roundedRect: barRect, xRadius: 1.2, yRadius: 1.2)
+            NSColor.black.setFill()
+            barPath.fill()
+
+            // 2. 右侧半圆弧形 )
+            let arcPath = NSBezierPath()
+            let center = NSPoint(x: 8.8, y: 9.0)
+            let outerR: CGFloat = 6.5
+            let innerR: CGFloat = 4.1
+
+            arcPath.appendArc(withCenter: center, radius: outerR, startAngle: 90, endAngle: -90, clockwise: true)
+            arcPath.line(to: NSPoint(x: center.x, y: center.y - innerR))
+            arcPath.appendArc(withCenter: center, radius: innerR, startAngle: -90, endAngle: 90, clockwise: false)
+            arcPath.close()
+            arcPath.fill()
+
+            return true
+        }
+        image.isTemplate = true
+        return image
     }
 }

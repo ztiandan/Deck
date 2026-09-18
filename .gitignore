@@ -24,3 +24,6 @@ DerivedData/
 *.local
 .env
 .env.*
+
+# Archives
+*.zip

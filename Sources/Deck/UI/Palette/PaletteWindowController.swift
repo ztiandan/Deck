@@ -143,16 +143,20 @@ public class PaletteWindowController: NSObject {
                 return nil
             }
 
-            // 匹配配置的快捷键
-            if let chars = event.characters, !chars.isEmpty {
-                let pressed = chars.lowercased()
-                let items = ConfigStore.shared.config.items
+            let items = ConfigStore.shared.config.items
 
-                if let matched = items.first(where: {
-                    $0.key == chars || $0.key.lowercased() == pressed
-                }) {
+            // 1. 优先匹配配置项的按键
+            if let matched = items.first(where: { $0.matches(event: event) }) {
+                self.hidePalette()
+                AppSwitcher.shared.execute(item: matched)
+                return nil
+            }
+
+            // 2. 若按下空格键 (kVK_Space == 49)，默认支持快速切换至最近应用
+            if event.keyCode == 49 {
+                if let lastAppItem = items.first(where: { $0.actionType == .activateLastApp }) {
                     self.hidePalette()
-                    AppSwitcher.shared.execute(item: matched)
+                    AppSwitcher.shared.execute(item: lastAppItem)
                     return nil
                 }
             }

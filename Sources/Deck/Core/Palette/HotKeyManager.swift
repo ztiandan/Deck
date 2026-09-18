@@ -13,8 +13,12 @@ public class HotKeyManager: ObservableObject {
 
     public var onTrigger: (() -> Void)?
 
+    private var pollingTimer: Timer?
+
     private init() {
-        checkAccessibility(prompt: false)
+        if !checkAccessibility(prompt: false) {
+            startPollingAccessibility()
+        }
     }
 
     /// 检查辅助功能权限
@@ -24,15 +28,40 @@ public class HotKeyManager: ObservableObject {
         let trusted = AXIsProcessTrustedWithOptions(options)
         DispatchQueue.main.async {
             self.isAccessibilityGranted = trusted
+            if trusted {
+                self.stopPollingAccessibility()
+                if !self.isListening {
+                    self.startListening()
+                }
+            }
         }
         return trusted
     }
 
+    /// 开始定期轮询辅助功能权限状态（授权后立即自动生效并停止轮询）
+    public func startPollingAccessibility() {
+        pollingTimer?.invalidate()
+        pollingTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
+            guard let self = self else { return }
+            if self.checkAccessibility(prompt: false) {
+                timer.invalidate()
+                self.pollingTimer = nil
+            }
+        }
+    }
+
+    public func stopPollingAccessibility() {
+        pollingTimer?.invalidate()
+        pollingTimer = nil
+    }
+
     /// 打开系统设置辅助功能设置页
     public func openAccessibilityPreferences() {
+        checkAccessibility(prompt: true)
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
             NSWorkspace.shared.open(url)
         }
+        startPollingAccessibility()
     }
 
     /// 开始监听全局热键

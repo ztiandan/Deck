@@ -53,4 +53,33 @@ public struct PaletteItem: Identifiable, Codable, Equatable {
         // 兜底返回系统通用应用程序图标
         return NSWorkspace.shared.icon(for: .application)
     }
+
+    /// 友好显示的按键标签（如空格显示为 "Space"）
+    public var displayKey: String {
+        let trimmed = key.trimmingCharacters(in: .whitespaces)
+        if key == " " || trimmed.lowercased() == "space" || trimmed == "␣" || trimmed == "空格" {
+            return "Space"
+        }
+        return key
+    }
+
+    /// 判断按键事件是否与当前配置项匹配
+    public func matches(event: NSEvent) -> Bool {
+        let trimmed = key.trimmingCharacters(in: .whitespaces)
+        let isSpaceConfigured = key == " " || trimmed.lowercased() == "space" || trimmed == "␣" || trimmed == "空格"
+
+        // 1. 按下空格键 (kVK_Space == 49)
+        if event.keyCode == 49 {
+            return isSpaceConfigured
+        }
+
+        // 2. 匹配字符输入
+        guard let chars = event.characters, !chars.isEmpty else { return false }
+        if isSpaceConfigured && chars == " " {
+            return true
+        }
+
+        let pressed = chars.lowercased()
+        return key == chars || key.lowercased() == pressed
+    }
 }

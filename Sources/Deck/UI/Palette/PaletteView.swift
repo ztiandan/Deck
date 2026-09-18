@@ -113,7 +113,7 @@ struct PaletteRow: View {
                 .cornerRadius(4)
 
             // 按键标识
-            Text(item.key)
+            Text(item.displayKey)
                 .font(.system(size: 13, weight: .bold, design: .monospaced))
                 .foregroundColor(.white)
 

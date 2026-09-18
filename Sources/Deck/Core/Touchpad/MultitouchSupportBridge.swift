@@ -9,14 +9,31 @@ public struct MTPoint {
     }
 }
 
+public struct MTVector {
+    public var position: MTPoint
+    public var velocity: MTPoint
+    public init(position: MTPoint = MTPoint(), velocity: MTPoint = MTPoint()) {
+        self.position = position
+        self.velocity = velocity
+    }
+}
+
 public struct MTTouch {
     public var frame: Int32
     public var timestamp: Double
-    public var identifier: Int32
-    public var state: Int32
-    public var fingerCount: Int32
-    public var size: Int32
-    public var normalized: MTPoint
+    public var pathIndex: Int32
+    public var state: UInt32
+    public var fingerID: Int32
+    public var handID: Int32
+    public var normalizedVector: MTVector
+    public var zTotal: Float
+    public var field9: Int32
+    public var angle: Float
+    public var majorAxis: Float
+    public var minorAxis: Float
+    public var absoluteVector: MTVector
+    public var field14: Int32
+    public var field15: Int32
     public var zDensity: Float
 }
 

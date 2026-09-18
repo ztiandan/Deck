@@ -12,11 +12,35 @@ public class ActionExecutor {
 
         switch gesture.actionType {
         case .shortcut:
-            simulateShortcut(keyCode: gesture.keyCode, modifiers: gesture.modifiers)
+            let (code, mods) = resolveKeyAndModifiers(gesture: gesture)
+            simulateShortcut(keyCode: code, modifiers: mods)
         case .cmdClick:
             simulateCmdClick()
         case .middleClick:
             simulateMiddleClick()
+        }
+    }
+
+    private func resolveKeyAndModifiers(gesture: TouchpadGesture) -> (UInt16, [String]) {
+        if gesture.keyCode != 0 {
+            return (gesture.keyCode, gesture.modifiers)
+        }
+        let clean = gesture.shortcutDisplay.trimmingCharacters(in: .whitespaces)
+        switch clean {
+        case "⌘ W", "⌘W", "cmd+w", "cmd w":
+            return (13, ["cmd"])
+        case "⌘ R", "⌘R", "cmd+r", "cmd r":
+            return (15, ["cmd"])
+        case "^ ←", "^←", "ctrl+left":
+            return (123, ["ctrl"])
+        case "^ →", "^→", "ctrl+right":
+            return (124, ["ctrl"])
+        case "^ ⇧ →", "^⇧→":
+            return (124, ["ctrl", "shift"])
+        case "^ ⇧ ←", "^⇧←":
+            return (123, ["ctrl", "shift"])
+        default:
+            return (gesture.keyCode, gesture.modifiers)
         }
     }
 
@@ -56,9 +80,8 @@ public class ActionExecutor {
     /// 模拟 CMD + 鼠标左键点击（常用于后台新标签打开）
     public func simulateCmdClick() {
         let mouseLoc = NSEvent.mouseLocation
-        guard let screen = NSScreen.main else { return }
-        // 转换 macOS 屏幕坐标（Y轴翻转）
-        let point = CGPoint(x: mouseLoc.x, y: screen.frame.height - mouseLoc.y)
+        let primaryHeight = NSScreen.screens.first?.frame.height ?? 1080
+        let point = CGPoint(x: mouseLoc.x, y: primaryHeight - mouseLoc.y)
 
         let src = CGEventSource(stateID: .combinedSessionState)
         guard let down = CGEvent(mouseEventSource: src, mouseType: .leftMouseDown, mouseCursorPosition: point, mouseButton: .left),
@@ -77,8 +100,8 @@ public class ActionExecutor {
     /// 模拟鼠标中键点击
     public func simulateMiddleClick() {
         let mouseLoc = NSEvent.mouseLocation
-        guard let screen = NSScreen.main else { return }
-        let point = CGPoint(x: mouseLoc.x, y: screen.frame.height - mouseLoc.y)
+        let primaryHeight = NSScreen.screens.first?.frame.height ?? 1080
+        let point = CGPoint(x: mouseLoc.x, y: primaryHeight - mouseLoc.y)
 
         let src = CGEventSource(stateID: .combinedSessionState)
         guard let down = CGEvent(mouseEventSource: src, mouseType: .otherMouseDown, mouseCursorPosition: point, mouseButton: .center),

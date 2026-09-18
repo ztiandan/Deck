@@ -87,14 +87,10 @@ public struct TrackpadGesturesView: View {
             .frame(minWidth: 220, idealWidth: 240, maxWidth: 280)
 
             // 右侧：动作与配置区
-            if let gesture = selectedGesture {
-                GestureDetailView(
-                    gesture: gesture,
-                    onUpdate: { updated in
-                        gestureStore.updateGesture(updated)
-                    }
-                )
-                .frame(minWidth: 420)
+            if let index = gestureStore.gestures.firstIndex(where: { $0.id == selectedGestureId }) {
+                GestureDetailView(gesture: $gestureStore.gestures[index])
+                    .id(gestureStore.gestures[index].id)
+                    .frame(minWidth: 420)
             } else {
                 VStack(spacing: 12) {
                     Image(systemName: "hand.tap")
@@ -123,10 +119,6 @@ public struct TrackpadGesturesView: View {
                 onCancel: { showingAddSheet = false }
             )
         }
-    }
-
-    private var selectedGesture: TouchpadGesture? {
-        gestureStore.gestures.first(where: { $0.id == selectedGestureId })
     }
 
     private func deleteSelected() {
@@ -186,17 +178,8 @@ struct GestureListRow: View {
 
 /// 手势配置详情
 struct GestureDetailView: View {
-    let gesture: TouchpadGesture
-    let onUpdate: (TouchpadGesture) -> Void
-
-    @State private var currentGesture: TouchpadGesture
+    @Binding var gesture: TouchpadGesture
     @ObservedObject var l10n = LocalizationManager.shared
-
-    init(gesture: TouchpadGesture, onUpdate: @escaping (TouchpadGesture) -> Void) {
-        self.gesture = gesture
-        self.onUpdate = onUpdate
-        _currentGesture = State(initialValue: gesture)
-    }
 
     var body: some View {
         ScrollView {
@@ -216,11 +199,11 @@ struct GestureDetailView: View {
                             .cornerRadius(8)
 
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(currentGesture.shortcutDisplay)
+                            Text(gesture.shortcutDisplay)
                                 .font(.system(size: 15, weight: .bold, design: .monospaced))
                                 .foregroundColor(.primary)
 
-                            Text(currentGesture.actionType.title)
+                            Text(gesture.actionType.title)
                                 .font(.system(size: 11))
                                 .foregroundColor(.secondary)
                         }
@@ -250,23 +233,21 @@ struct GestureDetailView: View {
                             .font(.system(size: 11, weight: .medium))
                             .foregroundColor(.secondary)
 
-                        Picker("", selection: $currentGesture.gestureType) {
+                        Picker("", selection: $gesture.gestureType) {
                             ForEach(GestureType.allCases) { type in
                                 Text(type.displayName).tag(type)
                             }
                         }
                         .labelsHidden()
-                        .onChange(of: currentGesture.gestureType) { _ in save() }
 
-                        Text(currentGesture.gestureType.description)
+                        Text(gesture.gestureType.description)
                             .font(.system(size: 11))
                             .foregroundColor(.secondary.opacity(0.85))
                     }
 
                     Divider()
 
-                    Toggle(loc(.gestureEnableToggle), isOn: $currentGesture.isEnabled)
-                        .onChange(of: currentGesture.isEnabled) { _ in save() }
+                    Toggle(loc(.gestureEnableToggle), isOn: $gesture.isEnabled)
 
                     Divider()
 
@@ -276,31 +257,29 @@ struct GestureDetailView: View {
                             .font(.system(size: 11, weight: .medium))
                             .foregroundColor(.secondary)
 
-                        Picker("", selection: $currentGesture.actionType) {
+                        Picker("", selection: $gesture.actionType) {
                             ForEach(GestureActionType.allCases, id: \.self) { type in
                                 Text(type.title).tag(type)
                             }
                         }
                         .pickerStyle(.segmented)
-                        .onChange(of: currentGesture.actionType) { newType in
+                        .onChange(of: gesture.actionType) { newType in
                             if newType == .cmdClick {
-                                currentGesture.shortcutDisplay = "CMD(⌘)+Click"
+                                gesture.shortcutDisplay = "CMD(⌘)+Click"
                             } else if newType == .middleClick {
-                                currentGesture.shortcutDisplay = "Middle Click"
+                                gesture.shortcutDisplay = "Middle Click"
                             }
-                            save()
                         }
 
-                        if currentGesture.actionType == .shortcut {
+                        if gesture.actionType == .shortcut {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text(loc(.gestureShortcutLabel))
                                     .font(.system(size: 11, weight: .medium))
                                     .foregroundColor(.secondary)
 
-                                TextField("⌘ W", text: $currentGesture.shortcutDisplay)
+                                TextField("⌘ W", text: $gesture.shortcutDisplay)
                                     .textFieldStyle(.roundedBorder)
                                     .frame(width: 200)
-                                    .onChange(of: currentGesture.shortcutDisplay) { _ in save() }
 
                                 HStack(spacing: 6) {
                                     Text(loc(.gesturePresetsLabel))
@@ -308,28 +287,29 @@ struct GestureDetailView: View {
                                         .foregroundColor(.secondary)
 
                                     PresetButton(title: "⌘ W") {
-                                        currentGesture.shortcutDisplay = "⌘ W"
-                                        currentGesture.keyCode = 13
-                                        currentGesture.modifiers = ["cmd"]
-                                        save()
+                                        gesture.shortcutDisplay = "⌘ W"
+                                        gesture.keyCode = 13
+                                        gesture.modifiers = ["cmd"]
                                     }
                                     PresetButton(title: "⌘ R") {
-                                        currentGesture.shortcutDisplay = "⌘ R"
-                                        currentGesture.keyCode = 15
-                                        currentGesture.modifiers = ["cmd"]
-                                        save()
+                                        gesture.shortcutDisplay = "⌘ R"
+                                        gesture.keyCode = 15
+                                        gesture.modifiers = ["cmd"]
                                     }
-                                    PresetButton(title: "^ ⇧ →") {
-                                        currentGesture.shortcutDisplay = "^ ⇧ →"
-                                        currentGesture.keyCode = 124
-                                        currentGesture.modifiers = ["ctrl", "shift"]
-                                        save()
+                                    PresetButton(title: "^ ←") {
+                                        gesture.shortcutDisplay = "^ ←"
+                                        gesture.keyCode = 123
+                                        gesture.modifiers = ["ctrl"]
                                     }
                                     PresetButton(title: "^ →") {
-                                        currentGesture.shortcutDisplay = "^ →"
-                                        currentGesture.keyCode = 124
-                                        currentGesture.modifiers = ["ctrl"]
-                                        save()
+                                        gesture.shortcutDisplay = "^ →"
+                                        gesture.keyCode = 124
+                                        gesture.modifiers = ["ctrl"]
+                                    }
+                                    PresetButton(title: "^ ⇧ →") {
+                                        gesture.shortcutDisplay = "^ ⇧ →"
+                                        gesture.keyCode = 124
+                                        gesture.modifiers = ["ctrl", "shift"]
                                     }
                                 }
                             }
@@ -344,9 +324,8 @@ struct GestureDetailView: View {
                             .font(.system(size: 11, weight: .medium))
                             .foregroundColor(.secondary)
 
-                        TextField(loc(.gestureNotesPlaceholder), text: $currentGesture.notes)
+                        TextField(loc(.gestureNotesPlaceholder), text: $gesture.notes)
                             .textFieldStyle(.roundedBorder)
-                            .onChange(of: currentGesture.notes) { _ in save() }
                     }
                 }
                 .padding(16)
@@ -362,20 +341,13 @@ struct GestureDetailView: View {
             }
             .padding(16)
         }
-        .onChange(of: gesture.id) { _ in
-            currentGesture = gesture
-        }
     }
 
     private var actionIconName: String {
-        switch currentGesture.actionType {
+        switch gesture.actionType {
         case .shortcut: return "keyboard"
         case .cmdClick, .middleClick: return "cursorarrow.click.2"
         }
-    }
-
-    private func save() {
-        onUpdate(currentGesture)
     }
 }
 

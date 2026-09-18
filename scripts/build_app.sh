@@ -41,8 +41,8 @@ if [ -n "$IDENTITY" ]; then
     echo "==> 4. Code signing with Apple Developer certificate: $IDENTITY..."
     codesign --force --deep --options runtime --sign "$IDENTITY" --identifier "com.deck.Deck" "$APP_BUNDLE"
 else
-    echo "==> 4. No developer certificate found, falling back to ad-hoc signing..."
-    codesign --force --deep --sign - --identifier "com.deck.Deck" "$APP_BUNDLE"
+    echo "==> 4. No developer certificate found, falling back to ad-hoc signing with stable designated requirement..."
+    codesign --force --deep --sign - --identifier "com.deck.Deck" -r="designated => identifier \"com.deck.Deck\"" "$APP_BUNDLE"
 fi
 
 echo "==> 5. Verifying signature & designated requirement:"

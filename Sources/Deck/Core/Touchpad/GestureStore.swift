@@ -4,7 +4,11 @@ import Combine
 public class GestureStore: ObservableObject {
     public static let shared = GestureStore()
 
-    @Published public var gestures: [TouchpadGesture] = []
+    @Published public var gestures: [TouchpadGesture] = [] {
+        didSet {
+            save()
+        }
+    }
     @Published public var isGlobalEnabled: Bool = true
 
     private let fileURL: URL
@@ -32,9 +36,11 @@ public class GestureStore: ObservableObject {
             do {
                 let data = try Data(contentsOf: fileURL)
                 var decoded = try JSONDecoder().decode([TouchpadGesture].self, from: data)
-                sanitizeNotes(&decoded)
-                self.gestures = decoded
-                return
+                if !decoded.isEmpty {
+                    sanitizeNotes(&decoded)
+                    self.gestures = decoded
+                    return
+                }
             } catch {
                 print("Failed to load gestures: \(error), using default")
             }
@@ -49,6 +55,14 @@ public class GestureStore: ObservableObject {
         let isEnglish = LocalizationManager.shared.currentLanguage == .english
         var modified = false
         for i in 0..<list.count {
+            // 修复历史遗留的 tipTapLeft3F 按键偏差（右箭头 -> 左箭头）
+            if list[i].gestureType == .tipTapLeft3F && list[i].shortcutDisplay == "^ ⇧ →" && list[i].keyCode == 124 {
+                list[i].shortcutDisplay = "^ ←"
+                list[i].keyCode = 123
+                list[i].modifiers = ["ctrl"]
+                modified = true
+            }
+
             switch list[i].notes {
             case "关闭标签页或窗口":
                 if isEnglish { list[i].notes = "Close tab or window"; modified = true }
@@ -101,9 +115,9 @@ public class GestureStore: ObservableObject {
             TouchpadGesture(
                 gestureType: .tipTapLeft3F,
                 actionType: .shortcut,
-                shortcutDisplay: "^ ⇧ →",
-                keyCode: 124, // Right Arrow
-                modifiers: ["ctrl", "shift"],
+                shortcutDisplay: "^ ←",
+                keyCode: 123, // Left Arrow
+                modifiers: ["ctrl"],
                 notes: isEnglish ? "Previous tab or desktop" : "前一切换标签/桌面"
             ),
             TouchpadGesture(
