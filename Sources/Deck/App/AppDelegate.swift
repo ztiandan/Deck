@@ -33,9 +33,11 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
             GestureStore.shared.updateNotesLanguage(to: LocalizationManager.shared.currentLanguage)
         }
 
-        // 启动时展示主窗口
-        DispatchQueue.main.async {
-            MainWindowController.shared.showWindow(tab: .appSwitcher)
+        // 启动时展示主窗口（默认关闭静默常驻托盘，用户可在设置中开启）
+        if ConfigStore.shared.config.showWindowOnLaunch {
+            DispatchQueue.main.async {
+                MainWindowController.shared.showWindow(tab: .appSwitcher)
+            }
         }
     }
 

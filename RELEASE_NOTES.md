@@ -1,25 +1,25 @@
-## Deck v1.1.4
+## Deck v1.1.5
 
-### Hosts preview in the menu bar
+### Global Timezone Switcher & Major Economies
 
-- Hover over **View Hosts** to open a scrollable preview of the current `/etc/hosts`, with a Copy action.
-- Each opening reads the system file again, including changes made outside Deck.
-- Long lines and large previews support horizontal and vertical scrolling. Read failures clear stale content and disable copying.
-- Removed the **Active Hosts** page from the main window; profile editing remains available under **Profiles**.
+- **Major Economies Quick Switch**: Real-time display of local times for leading global economies (China, US East/West/Central, UK, EU/Germany/France, Japan, Singapore, Hong Kong, Australia, India, UAE, Canada) with one-click switching.
+- **Global IANA Timezone Support**: Search and switch across 400+ world timezones with real-time UTC offsets and relative difference indicators.
+- **Menu Bar Integration**: Dedicated status bar section displaying current timezone and live local time, with an instant-switch submenu.
+- **Optional Passwordless Switching**: One-time authorization allows instant timezone changes without repetitive password prompts.
 
-### Fixes and polish
+### Startup & Background Experience
 
-- Removed the bright vertical divider between the sidebar and content area for a cleaner dark appearance.
-- Hosts profile switching now reports a configuration-save failure instead of returning success.
-- Resetting app mappings preserves the selected theme, trigger key, and palette position.
+- **Silent Launch by Default**: Deck now starts quietly in the macOS menu bar without automatically popping up the settings window.
+- **Launch at Login (SMAppService)**: Native macOS 13+ launch-at-login support configurable in General Settings.
+- **Streamlined Preferences**: Removed redundant settings cards for a cleaner, faster workflow.
 
 ### Validation
 
-- 70 automated tests cover the existing features plus preview refresh, empty/unreadable files, scrolling, persistence errors, and mapping reset behavior.
-- Release builds verify the application signature. Main-window changes were checked in the native app; real pointer-hover behavior remains an environment-specific manual check.
+- 79 automated unit tests covering all modules: Timezone management, Launch at Login, Hosts, Palette, Trackpad gestures, and bilingual localization coverage.
+- Code signed with Apple Developer ID.
 
 ### Installation
 
 1. Download `Deck-macOS.zip` below and unzip it.
-2. Quit Deck, then replace `Deck.app` in `/Applications`.
-3. Open Deck. Existing profiles, mappings, gestures, and preferences are retained.
+2. Replace `Deck.app` in `/Applications`.
+3. Launch Deck. All your configurations, profiles, and key mappings are preserved.

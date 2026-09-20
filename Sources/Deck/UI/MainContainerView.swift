@@ -5,6 +5,7 @@ public enum DeckTab: String, CaseIterable, Identifiable {
     case appSwitcher = "appSwitcher"
     case trackpad = "trackpad"
     case editHosts = "editHosts"
+    case timezone = "timezone"
     case general = "general"
 
     public var id: String { self.rawValue }
@@ -14,6 +15,7 @@ public enum DeckTab: String, CaseIterable, Identifiable {
         case .appSwitcher: return loc(.tabAppSwitcher)
         case .trackpad: return loc(.tabTrackpad)
         case .editHosts: return loc(.tabEditHosts)
+        case .timezone: return loc(.tabTimezone)
         case .general: return loc(.tabGeneral)
         }
     }
@@ -23,6 +25,7 @@ public enum DeckTab: String, CaseIterable, Identifiable {
         case .appSwitcher: return "square.grid.2x2.fill"
         case .trackpad: return "hand.tap.fill"
         case .editHosts: return "pencil.and.outline"
+        case .timezone: return "globe"
         case .general: return "gearshape.fill"
         }
     }
@@ -37,6 +40,7 @@ public struct MainContainerView: View {
     @ObservedObject var configurationIssue = ConfigurationIssue.shared
     @ObservedObject var hotKeyManager = HotKeyManager.shared
     @ObservedObject var touchpadManager = TouchpadManager.shared
+    @ObservedObject var tzManager = TimezoneManager.shared
     @ObservedObject var l10n = LocalizationManager.shared
 
     public init(initialTab: DeckTab = .appSwitcher) {
@@ -121,7 +125,21 @@ public struct MainContainerView: View {
 
                         }
 
-                        // 板块四：系统偏好
+                        // 板块四：时区快速切换
+                        VStack(alignment: .leading, spacing: 3) {
+                            SidebarSectionHeader(title: loc(.navTimezoneManagement), icon: "globe")
+
+                            SidebarItemButton(
+                                title: loc(.navTimezoneSwitcher),
+                                icon: "globe",
+                                isSelected: selectedTab == .timezone,
+                                badgeText: tzManager.currentTimezoneShort,
+                                badgeColor: .blue,
+                                action: { selectedTab = .timezone }
+                            )
+                        }
+
+                        // 板块五：系统偏好
                         VStack(alignment: .leading, spacing: 3) {
                             SidebarSectionHeader(title: loc(.navPreferences), icon: "slider.horizontal.3")
 
@@ -153,7 +171,7 @@ public struct MainContainerView: View {
                         .font(.system(size: 10.5, weight: .medium))
                         .foregroundColor(.secondary)
                     Spacer()
-                    Text("v" + (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.1.4"))
+                    Text("v" + (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.1.5"))
                         .font(.system(size: 10, weight: .semibold, design: .monospaced))
                         .foregroundColor(.secondary.opacity(0.7))
                 }
@@ -173,6 +191,8 @@ public struct MainContainerView: View {
                     TrackpadGesturesView()
                 case .editHosts:
                     EditHostsView()
+                case .timezone:
+                    TimezoneView()
                 case .general:
                     GeneralHostsView()
                 }

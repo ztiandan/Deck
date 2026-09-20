@@ -2,6 +2,24 @@
 
 All notable changes to **Deck** will be documented in this file.
 
+## [v1.1.5] - 2026-09-20
+
+### Added
+- **Global Timezone Switcher**: Support for searching and switching across all 400+ IANA global timezones.
+- **Major Economies Quick Switch**: Live local times, flags, and one-click switching for key global financial centers (China, US East/West/Central, UK, EU, Japan, Singapore, Australia, India, etc.).
+- **Status Bar Integration**: Dedicated menu bar section with current timezone, live time, and instant-switch submenu.
+- **Launch at Login**: Native macOS 13+ `SMAppService` launch-at-login support configurable in General Settings.
+- **Optional Passwordless Timezone Switching**: One-time authorization allows instant timezone changes without repetitive password prompts.
+
+### Changed
+- **Silent App Launch**: Deck now launches quietly into the menu bar by default without popping up the settings window.
+- **Simplified Preferences**: Streamlined General Settings and removed redundant Hosts Preferences card.
+- **Concise Documentation**: Overhauled README with cleaner presentation and feature highlights.
+
+### Validation
+- Expanded regression test suite to 79 automated tests with 100% pass rate.
+- Verified codesigned application bundle and packaging.
+
 ---
 
 ## [v1.1.4] - 2026-09-18

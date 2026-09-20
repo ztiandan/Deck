@@ -1,8 +1,8 @@
 import SwiftUI
 
 public struct GeneralHostsView: View {
-    @ObservedObject var hostsStore = HostsStore.shared
     @ObservedObject var configStore = ConfigStore.shared
+    @ObservedObject var launchAtLoginManager = LaunchAtLoginManager.shared
     @ObservedObject var l10n = LocalizationManager.shared
     @State private var isPasswordless: Bool = false
     @State private var statusTip: String?
@@ -78,19 +78,49 @@ public struct GeneralHostsView: View {
                     .shadow(color: DeckTheme.cardShadow, radius: 4, x: 0, y: 1)
                 }
 
-                // Hosts 偏好
+
+                // 启动偏好
                 VStack(alignment: .leading, spacing: 10) {
-                    Text(loc(.prefHostsSection))
+                    Text(loc(.prefStartupSection))
                         .font(.system(size: 13, weight: .bold))
 
                     VStack(alignment: .leading, spacing: 12) {
-                        Toggle(loc(.prefHoverPreview), isOn: $hostsStore.config.previewOnHover)
-                            .onChange(of: hostsStore.config.previewOnHover) { _ in hostsStore.save() }
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(loc(.prefLaunchAtLogin))
+                                    .font(.system(size: 12.5, weight: .medium))
+                                Text(loc(.prefLaunchAtLoginDesc))
+                                    .font(.system(size: 10.5))
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                            Toggle("", isOn: Binding(
+                                get: { launchAtLoginManager.isEnabled },
+                                set: { launchAtLoginManager.setEnabled($0) }
+                            ))
+                            .labelsHidden()
+                        }
 
                         Divider()
 
-                        Toggle(loc(.prefGroupExclusive), isOn: $hostsStore.config.exclusiveInGroup)
-                            .onChange(of: hostsStore.config.exclusiveInGroup) { _ in hostsStore.save() }
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(loc(.prefShowWindowOnLaunch))
+                                    .font(.system(size: 12.5, weight: .medium))
+                                Text(loc(.prefShowWindowOnLaunchDesc))
+                                    .font(.system(size: 10.5))
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                            Toggle("", isOn: Binding(
+                                get: { configStore.config.showWindowOnLaunch },
+                                set: { newValue in
+                                    configStore.config.showWindowOnLaunch = newValue
+                                    configStore.save()
+                                }
+                            ))
+                            .labelsHidden()
+                        }
                     }
                     .padding(16)
                     .background(
@@ -163,7 +193,7 @@ public struct GeneralHostsView: View {
                 HStack(spacing: 6) {
                     Text(loc(.prefVersionLabel))
                         .foregroundColor(.secondary)
-                    Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.1.4")
+                    Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.1.5")
                         .font(.system(size: 11, weight: .semibold, design: .monospaced))
                         .foregroundColor(.primary)
                 }
@@ -174,6 +204,7 @@ public struct GeneralHostsView: View {
         }
         .onAppear {
             isPasswordless = HostsManager.shared.isPasswordlessEnabled()
+            launchAtLoginManager.refresh()
         }
     }
 }

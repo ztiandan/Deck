@@ -23,12 +23,13 @@ public struct AppConfig: Codable {
     public var triggerKeyName: String = "F18"
     public var showAtCursor: Bool = false
     public var themeMode: AppThemeMode = .light
+    public var showWindowOnLaunch: Bool = false
     public var items: [PaletteItem] = []
 
     public init() {}
 
     enum CodingKeys: String, CodingKey {
-        case triggerKeyCode, triggerKeyName, showAtCursor, themeMode, items
+        case triggerKeyCode, triggerKeyName, showAtCursor, themeMode, showWindowOnLaunch, items
     }
 
     public init(from decoder: Decoder) throws {
@@ -37,6 +38,7 @@ public struct AppConfig: Codable {
         triggerKeyName = try container.decodeIfPresent(String.self, forKey: .triggerKeyName) ?? "F18"
         showAtCursor = try container.decodeIfPresent(Bool.self, forKey: .showAtCursor) ?? false
         themeMode = try container.decodeIfPresent(AppThemeMode.self, forKey: .themeMode) ?? .light
+        showWindowOnLaunch = try container.decodeIfPresent(Bool.self, forKey: .showWindowOnLaunch) ?? false
         items = try container.decodeIfPresent([PaletteItem].self, forKey: .items) ?? []
     }
 

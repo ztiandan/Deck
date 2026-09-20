@@ -113,17 +113,55 @@ public class MenuBarManager: NSObject, NSMenuDelegate {
 
         menu.addItem(NSMenuItem.separator())
 
-        // 6. 设置主窗口
+        // 6. 时区快速切换
+        let tzManager = TimezoneManager.shared
+        let currentTzItem = tzManager.currentItem
+        let timeString = currentTzItem.formattedTime()
+        let tzTitle = "\(loc(.menuTimezone)): \(currentTzItem.cityName) (\(timeString))"
+        let tzMenuItem = NSMenuItem(title: tzTitle, action: nil, keyEquivalent: "")
+        tzMenuItem.image = NSImage(systemSymbolName: "globe", accessibilityDescription: nil)
+
+        let tzSub = NSMenu()
+        for economy in TimezoneDatabase.majorEconomies {
+            let isCurrent = economy.identifier == tzManager.currentTimezone
+            let econTime = economy.formattedTime()
+            let title = "\(economy.flag) \(economy.countryName) · \(economy.cityName) — \(econTime)"
+            let item = NSMenuItem(title: title, action: #selector(switchTimezoneAction(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = economy.identifier
+            item.state = isCurrent ? .on : .off
+            tzSub.addItem(item)
+        }
+
+        tzSub.addItem(NSMenuItem.separator())
+        let moreTzItem = NSMenuItem(title: loc(.menuMoreTimezones), action: #selector(openTimezoneAction), keyEquivalent: "")
+        moreTzItem.target = self
+        tzSub.addItem(moreTzItem)
+        tzMenuItem.submenu = tzSub
+        menu.addItem(tzMenuItem)
+
+        menu.addItem(NSMenuItem.separator())
+
+        // 7. 设置主窗口
         let settingsItem = NSMenuItem(title: loc(.menuPreferences), action: #selector(openSettingsAction), keyEquivalent: ",")
         settingsItem.target = self
         menu.addItem(settingsItem)
 
         menu.addItem(NSMenuItem.separator())
 
-        // 7. 退出
+        // 8. 退出
         let quitItem = NSMenuItem(title: loc(.menuQuit), action: #selector(quitAction), keyEquivalent: "q")
         quitItem.target = self
         menu.addItem(quitItem)
+    }
+
+    @objc private func switchTimezoneAction(_ sender: NSMenuItem) {
+        guard let tzId = sender.representedObject as? String else { return }
+        TimezoneManager.shared.setTimezone(tzId)
+    }
+
+    @objc private func openTimezoneAction() {
+        MainWindowController.shared.showWindow(tab: .timezone)
     }
 
     @objc private func toggleProfileClicked(_ sender: NSMenuItem) {

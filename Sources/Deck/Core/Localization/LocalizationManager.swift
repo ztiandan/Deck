@@ -127,6 +127,11 @@ public enum L10nKey: String, CaseIterable {
     case prefEnablePasswordless
     case prefPasswordlessSuccess
     case prefVersionLabel
+    case prefStartupSection
+    case prefLaunchAtLogin
+    case prefLaunchAtLoginDesc
+    case prefShowWindowOnLaunch
+    case prefShowWindowOnLaunchDesc
 
     // Touchpad Gestures
     case gestureListHeader
@@ -212,6 +217,38 @@ public enum L10nKey: String, CaseIterable {
     case paletteActionActivateLast
     case paletteActionActivateApp
     case paletteHudPrompt
+
+    // Timezone Section
+    case tabTimezone
+    case navTimezoneManagement
+    case navTimezoneSwitcher
+    case menuTimezone
+    case menuMoreTimezones
+    case tzCurrentTimezone
+    case tzMajorEconomies
+    case tzMajorEconomiesDesc
+    case tzGlobalTimezones
+    case tzGlobalSearchPlaceholder
+    case tzFilterAll
+    case tzFilterMajor
+    case tzFilterAsia
+    case tzFilterAmericas
+    case tzFilterEurope
+    case tzFilterPacific
+    case tzFilterAfrica
+    case tzFilterOther
+    case tzSwitchTo
+    case tzActive
+    case tzSwitchSuccess
+    case tzSwitchFailed
+    case tzAuthorizationPrompt
+    case tzPasswordlessActive
+    case tzPasswordlessInactive
+    case tzEnablePasswordless
+    case tzPasswordlessSuccess
+    case tzPasswordlessTip
+    case tzTimeDifference
+    case tzCitySearchEmpty
 }
 
 public class LocalizationManager: ObservableObject {
@@ -357,6 +394,11 @@ public class LocalizationManager: ObservableObject {
         .prefEnablePasswordless: "Enable Passwordless",
         .prefPasswordlessSuccess: "Passwordless mode successfully enabled",
         .prefVersionLabel: "Deck Version:",
+        .prefStartupSection: "Startup Preferences",
+        .prefLaunchAtLogin: "Launch at Login",
+        .prefLaunchAtLoginDesc: "Automatically start Deck in the background menubar upon logging in.",
+        .prefShowWindowOnLaunch: "Show Settings Window on Launch",
+        .prefShowWindowOnLaunchDesc: "Automatically open this settings window when Deck launches.",
 
         .gestureListHeader: "Gesture List",
         .gestureReset: "Reset",
@@ -439,7 +481,39 @@ public class LocalizationManager: ObservableObject {
         .paletteResetDefaults: "Reset to Default Mappings",
         .paletteActionActivateLast: "Activate Last Application",
         .paletteActionActivateApp: "Activate Application",
-        .paletteHudPrompt: "Press key to switch application"
+        .paletteHudPrompt: "Press key to switch application",
+
+        // Timezone Section
+        .tabTimezone: "Timezone",
+        .navTimezoneManagement: "TIMEZONE",
+        .navTimezoneSwitcher: "Timezone Switcher",
+        .menuTimezone: "Timezone",
+        .menuMoreTimezones: "More Global Timezones...",
+        .tzCurrentTimezone: "Current System Timezone",
+        .tzMajorEconomies: "Major Economies",
+        .tzMajorEconomiesDesc: "Live local times for top global economies with instant one-click switching",
+        .tzGlobalTimezones: "Global Timezones",
+        .tzGlobalSearchPlaceholder: "Search city, region, country or UTC offset...",
+        .tzFilterAll: "All",
+        .tzFilterMajor: "Major",
+        .tzFilterAsia: "Asia",
+        .tzFilterAmericas: "Americas",
+        .tzFilterEurope: "Europe",
+        .tzFilterPacific: "Pacific",
+        .tzFilterAfrica: "Africa",
+        .tzFilterOther: "Other",
+        .tzSwitchTo: "Switch",
+        .tzActive: "Active",
+        .tzSwitchSuccess: "Timezone updated successfully",
+        .tzSwitchFailed: "Failed to switch timezone",
+        .tzAuthorizationPrompt: "Deck requires administrative privileges to change system timezone",
+        .tzPasswordlessActive: "Passwordless Switching Enabled",
+        .tzPasswordlessInactive: "Standard Mode (Requires Authorization)",
+        .tzEnablePasswordless: "Enable Passwordless",
+        .tzPasswordlessSuccess: "Passwordless mode enabled successfully",
+        .tzPasswordlessTip: "One-time authorization allows instant timezone switching without password prompts",
+        .tzTimeDifference: "Difference",
+        .tzCitySearchEmpty: "No matching timezones found"
     ]
 
     private let chineseStrings: [L10nKey: String] = [
@@ -548,6 +622,11 @@ public class LocalizationManager: ObservableObject {
         .prefEnablePasswordless: "开启免密",
         .prefPasswordlessSuccess: "已成功开启免密模式",
         .prefVersionLabel: "Deck 版本:",
+        .prefStartupSection: "启动偏好",
+        .prefLaunchAtLogin: "开机自启动",
+        .prefLaunchAtLoginDesc: "在登录 macOS 时自动在后台托盘启动 Deck。",
+        .prefShowWindowOnLaunch: "启动时显示设置窗口",
+        .prefShowWindowOnLaunchDesc: "Deck 启动时自动弹出设置窗口（默认关闭，保持后台常驻）。",
 
         .gestureListHeader: "手势列表",
         .gestureReset: "重置",
@@ -630,7 +709,39 @@ public class LocalizationManager: ObservableObject {
         .paletteResetDefaults: "恢复默认映射",
         .paletteActionActivateLast: "切回上一应用",
         .paletteActionActivateApp: "激活应用",
-        .paletteHudPrompt: "按下对应单键切换应用"
+        .paletteHudPrompt: "按下对应单键切换应用",
+
+        // Timezone Section
+        .tabTimezone: "时区切换",
+        .navTimezoneManagement: "时区管理",
+        .navTimezoneSwitcher: "时区快速切换",
+        .menuTimezone: "时区",
+        .menuMoreTimezones: "更多全球时区...",
+        .tzCurrentTimezone: "当前系统时区",
+        .tzMajorEconomies: "主流经济体时区",
+        .tzMajorEconomiesDesc: "涵盖全球主要经济体与金融中心，实时显示当地时间，支持一键极速切换",
+        .tzGlobalTimezones: "全球时区一览",
+        .tzGlobalSearchPlaceholder: "搜索城市、国家、地区或 UTC 偏移量 (如 东京, London, UTC+8)...",
+        .tzFilterAll: "全部",
+        .tzFilterMajor: "主流经济体",
+        .tzFilterAsia: "亚洲",
+        .tzFilterAmericas: "美洲",
+        .tzFilterEurope: "欧洲",
+        .tzFilterPacific: "大洋洲/太平洋",
+        .tzFilterAfrica: "非洲",
+        .tzFilterOther: "其他",
+        .tzSwitchTo: "切换",
+        .tzActive: "当前生效",
+        .tzSwitchSuccess: "系统时区切换成功",
+        .tzSwitchFailed: "切换时区失败",
+        .tzAuthorizationPrompt: "Deck 需要管理员权限以切换系统时区",
+        .tzPasswordlessActive: "免密极速切换已启用",
+        .tzPasswordlessInactive: "标准模式 (切换需系统授权)",
+        .tzEnablePasswordless: "启用免密切换",
+        .tzPasswordlessSuccess: "已成功启用免密切换模式",
+        .tzPasswordlessTip: "一次性授权后，即可直接点击无感切换系统时区，无需重复输入密码",
+        .tzTimeDifference: "时差",
+        .tzCitySearchEmpty: "未找到匹配的时区"
     ]
 }
 
