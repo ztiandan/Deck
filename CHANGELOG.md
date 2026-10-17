@@ -2,6 +2,21 @@
 
 All notable changes to **Deck** will be documented in this file.
 
+## [v1.1.6] - 2026-10-17
+
+### Fixed
+- Recover trackpad gestures and the global app-switcher shortcut after system sleep, display wake, and user-session changes.
+- Reacquire the default trackpad device on recovery, release old registrations, and retry while the device wakes.
+- Detect disabled or invalid keyboard event taps and restore listening automatically, including after temporary permission or creation failures.
+- Discard queued input from previous sessions and reset incomplete gestures to prevent stale actions after waking.
+- Preserve the user's gesture enablement settings throughout recovery.
+
+### Validation
+- 96 automated tests pass, including 17 new tests for listener recovery, notification ordering, retries, and stale callbacks.
+- Verified three native trackpad start/stop cycles and a signed release build locally; long-duration hardware sleep remains a manual validation step.
+
+---
+
 ## [v1.1.5] - 2026-09-20
 
 ### Added

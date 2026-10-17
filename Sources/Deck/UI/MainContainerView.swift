@@ -171,7 +171,7 @@ public struct MainContainerView: View {
                         .font(.system(size: 10.5, weight: .medium))
                         .foregroundColor(.secondary)
                     Spacer()
-                    Text("v" + (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.1.5"))
+                    Text("v" + (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.1.6"))
                         .font(.system(size: 10, weight: .semibold, design: .monospaced))
                         .foregroundColor(.secondary.opacity(0.7))
                 }

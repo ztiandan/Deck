@@ -2,6 +2,18 @@ import Foundation
 import AppKit
 
 public class AppDelegate: NSObject, NSApplicationDelegate {
+    private lazy var inputLifecycle = InputLifecycleCoordinator(
+        onSuspend: {
+            PaletteWindowController.shared.hidePalette()
+            HotKeyManager.shared.suspend()
+            TouchpadManager.shared.suspend()
+        },
+        onResume: {
+            HotKeyManager.shared.resume()
+            TouchpadManager.shared.resume()
+        }
+    )
+
     public func applicationDidFinishLaunching(_ notification: Notification) {
         // 设置为后台代理应用（状态栏运行，不占用 Dock）
         NSApp.setActivationPolicy(.accessory)
@@ -21,6 +33,7 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
         // Begin tracking before Deck becomes frontmost, so Last Application works
         // on the very first palette invocation.
         _ = AppSwitcher.shared
+        inputLifecycle.start()
         HotKeyManager.shared.startPollingAccessibility()
 
         // 初始化触控板手势增强引擎
@@ -42,6 +55,7 @@ public class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     public func applicationWillTerminate(_ notification: Notification) {
+        inputLifecycle.stop()
         HostsStore.shared.saveDrafts()
         HotKeyManager.shared.stopPollingAccessibility()
         HotKeyManager.shared.stopListening()

@@ -1,25 +1,21 @@
-## Deck v1.1.5
+## Deck v1.1.6
 
-### Global Timezone Switcher & Major Economies
+### Sleep & Wake Recovery
 
-- **Major Economies Quick Switch**: Real-time display of local times for leading global economies (China, US East/West/Central, UK, EU/Germany/France, Japan, Singapore, Hong Kong, Australia, India, UAE, Canada) with one-click switching.
-- **Global IANA Timezone Support**: Search and switch across 400+ world timezones with real-time UTC offsets and relative difference indicators.
-- **Menu Bar Integration**: Dedicated status bar section displaying current timezone and live local time, with an instant-switch submenu.
-- **Optional Passwordless Switching**: One-time authorization allows instant timezone changes without repetitive password prompts.
-
-### Startup & Background Experience
-
-- **Silent Launch by Default**: Deck now starts quietly in the macOS menu bar without automatically popping up the settings window.
-- **Launch at Login (SMAppService)**: Native macOS 13+ launch-at-login support configurable in General Settings.
-- **Streamlined Preferences**: Removed redundant settings cards for a cleaner, faster workflow.
+- Restore trackpad gestures and the global app-switcher shortcut after system sleep, display wake, and user-session changes.
+- Reconnect the trackpad with bounded retries while the hardware wakes, and clean up previous device registrations.
+- Check keyboard listener health and automatically restore disabled or invalid event taps.
+- Discard stale input callbacks and incomplete gestures so pre-sleep input cannot trigger actions after waking.
+- Preserve your gesture enablement settings during recovery.
 
 ### Validation
 
-- 79 automated unit tests covering all modules: Timezone management, Launch at Login, Hosts, Palette, Trackpad gestures, and bilingual localization coverage.
-- Code signed with Apple Developer ID.
+- 96 automated tests pass, including 17 new recovery regression tests.
+- Verified three native trackpad start/stop cycles and a signed release build locally.
+- Long-duration hardware sleep still requires manual verification.
 
 ### Installation
 
 1. Download `Deck-macOS.zip` below and unzip it.
-2. Replace `Deck.app` in `/Applications`.
-3. Launch Deck. All your configurations, profiles, and key mappings are preserved.
+2. Quit Deck and replace `Deck.app` in `/Applications`.
+3. Launch Deck. Your configurations, profiles, and key mappings are preserved.

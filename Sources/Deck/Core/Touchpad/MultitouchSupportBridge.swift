@@ -54,8 +54,11 @@ public class MultitouchBridge {
 
     public var MTDeviceCreateDefault: (@convention(c) () -> MTDeviceRef?)?
     public var MTRegisterContactFrameCallback: (@convention(c) (MTDeviceRef?, MTContactCallback?) -> Void)?
+    public var MTUnregisterContactFrameCallback: (@convention(c) (MTDeviceRef?, MTContactCallback?) -> Void)?
     public var MTDeviceStart: (@convention(c) (MTDeviceRef?, Int32) -> Void)?
     public var MTDeviceStop: (@convention(c) (MTDeviceRef?) -> Void)?
+    public var MTDeviceRelease: (@convention(c) (MTDeviceRef?) -> Void)?
+    public var MTDeviceIsRunning: (@convention(c) (MTDeviceRef?) -> Bool)?
 
     private init() {
         loadFramework()
@@ -74,15 +77,26 @@ public class MultitouchBridge {
         if let sym = dlsym(lib, "MTRegisterContactFrameCallback") {
             self.MTRegisterContactFrameCallback = unsafeBitCast(sym, to: (@convention(c) (MTDeviceRef?, MTContactCallback?) -> Void).self)
         }
+        if let sym = dlsym(lib, "MTUnregisterContactFrameCallback") {
+            self.MTUnregisterContactFrameCallback = unsafeBitCast(sym, to: (@convention(c) (MTDeviceRef?, MTContactCallback?) -> Void).self)
+        }
         if let sym = dlsym(lib, "MTDeviceStart") {
             self.MTDeviceStart = unsafeBitCast(sym, to: (@convention(c) (MTDeviceRef?, Int32) -> Void).self)
         }
         if let sym = dlsym(lib, "MTDeviceStop") {
             self.MTDeviceStop = unsafeBitCast(sym, to: (@convention(c) (MTDeviceRef?) -> Void).self)
         }
+        if let sym = dlsym(lib, "MTDeviceRelease") {
+            self.MTDeviceRelease = unsafeBitCast(sym, to: (@convention(c) (MTDeviceRef?) -> Void).self)
+        }
+        if let sym = dlsym(lib, "MTDeviceIsRunning") {
+            self.MTDeviceIsRunning = unsafeBitCast(sym, to: (@convention(c) (MTDeviceRef?) -> Bool).self)
+        }
     }
 
     public var isAvailable: Bool {
-        return MTDeviceCreateDefault != nil && MTRegisterContactFrameCallback != nil && MTDeviceStart != nil && MTDeviceStop != nil
+        return MTDeviceCreateDefault != nil && MTRegisterContactFrameCallback != nil &&
+            MTUnregisterContactFrameCallback != nil && MTDeviceStart != nil &&
+            MTDeviceStop != nil && MTDeviceRelease != nil
     }
 }
